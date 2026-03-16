@@ -11,6 +11,7 @@ load_dotenv()
 url = os.getenv("SUPABASE_URL")
 key = os.getenv("SUPABASE_KEY")
 
+# st.session_state = 'app'
 
 @st.cache_resource
 def get_supabase_client():
@@ -30,6 +31,7 @@ for percent_complete in range(100):
     my_bar.progress(percent_complete + 1, text=progress_text)
 time.sleep(1)
 my_bar.empty()
+
 
 
 df = None
