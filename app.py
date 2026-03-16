@@ -7,8 +7,8 @@ import plotly.express as px
 import time
 import os
 
-SUPABASE_URL= "https://czjtoigjqywaccmkdead.supabase.co"
-SUPABASE_KEY= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6anRvaWdqcXl3YWNjbWtkZWFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNDk1NzMsImV4cCI6MjA4NjgyNTU3M30.3Hf0nRDg9uAIXqIkQH8WGJyAG3Q-f3VOuUbMVfl9968"
+# SUPABASE_URL= "https://czjtoigjqywaccmkdead.supabase.co"
+# SUPABASE_KEY= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN6anRvaWdqcXl3YWNjbWtkZWFkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNDk1NzMsImV4cCI6MjA4NjgyNTU3M30.3Hf0nRDg9uAIXqIkQH8WGJyAG3Q-f3VOuUbMVfl9968"
 
 load_dotenv()
 url = os.getenv("SUPABASE_URL")
