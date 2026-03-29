@@ -162,7 +162,7 @@ else:
                     "p1_score_total": "P1 Score",
                     "display_p2_name": "Player 2",
                     "p2_faction": "P2 Faction",
-                    "p2_score_total": "P2 Opponent Score"
+                    "p2_score_total": "P2 Score"
                 },
                 use_container_width=True,
                 hide_index=True
