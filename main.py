@@ -134,27 +134,33 @@ else:
         st.write(f"Most recent matches logged")
 
         try:
-            p1_response_system_factions = supabase.table("system_factions").select("*").execute()
+            p1_response_system_factions = supabase.table("matches").select("*").execute()
             p1_df_system_factions = DataFrame(p1_response_system_factions.data)
         except Exception as e:
             print(e)
 
         st.dataframe(
-            display_df[['rank', 'player_name', 'faction_name', 'sub_faction_name', 'record', 'total_score',
-                        'score_difference']],
+            p1_df_system_factions[['allegiance','faction','subfaction']],
             hide_index=True,
-            column_config={
-                "rank": "Rank",
-                "player_name": "Player",
-                "faction_name": "Faction",
-                "sub_faction_name": "Detatchment",
-                "record": "W/D/L",
-                "total_score": "Total Score",
-                "score_difference": "+/- Margin"
-            },
             use_container_width=True
         )
 
+        # st.dataframe(
+        #     display_df[['rank', 'player_name', 'faction_name', 'sub_faction_name', 'record', 'total_score',
+        #                 'score_difference']],
+        #     hide_index=True,
+        #     column_config={
+        #         "rank": "Rank",
+        #         "player_name": "Player",
+        #         "faction_name": "Faction",
+        #         "sub_faction_name": "Detatchment",
+        #         "record": "W/D/L",
+        #         "total_score": "Total Score",
+        #         "score_difference": "+/- Margin"
+        #     },
+        #     use_container_width=True
+        # )
+        # 
 
     elif st.session_state.page == "Log Games":
         st.header("Log Games")
