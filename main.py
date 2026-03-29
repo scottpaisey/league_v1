@@ -165,96 +165,92 @@ else:
 
         st.subheader("Game Details")
 
-        col1, col2 = st.columns(2)
-
         game_size = st.selectbox('Game Size', ['Strike Force', 'Incursion', 'Combat Partol'], index=None,
                                  placeholder="Choose...", key="game_s")
         # mission_pack = st.selectbox(st.selectbox('Mission Pack',['Strike Force (2k)', 'Incursion (1k)', 'Combat Partol'], index=None, placeholder="Choose...")
 
 
-        with col1:
-            st.write("**Your Details**")
-            # Extract the name from Discord metadata
-            p1_name = st.text_input("Your Discord Name*", value=discord_name, key="p1_username")
-            # p1_last = st.text_input("Surname", key="p1_l")
-            # p1_known = st.text_input("Known As", key="p1_k")
-            # 1. Allegiance Dropdown
-            p1_all_df = p1_df_system_factions[p1_df_system_factions['short_name'] == '40K']
-            p1_all = st.selectbox("Your Allegiance", p1_all_df['allegiance'].unique(), index=None,
-                                  placeholder="Choose...", key="p1_all_sel")
-            # 2. Faction Dropdown (MUST use filtered options)
-            if p1_all:
-                # We filter the dataframe here
-                p1_fac_df = p1_all_df[p1_all_df['allegiance'] == p1_all]
-                # We use faction_df to get the unique names for the options
-                p1_fac = st.selectbox("Your Faction", p1_fac_df['faction'].unique(), index=None,
-                                      placeholder="Choose...", key="p1_fac_sel")
+        st.write("**Your Details**")
+        # Extract the name from Discord metadata
+        p1_name = st.text_input("Your Discord Name*", value=discord_name, key="p1_username")
+        # p1_last = st.text_input("Surname", key="p1_l")
+        # p1_known = st.text_input("Known As", key="p1_k")
+        # 1. Allegiance Dropdown
+        p1_all_df = p1_df_system_factions[p1_df_system_factions['short_name'] == '40K']
+        p1_all = st.selectbox("Your Allegiance", p1_all_df['allegiance'].unique(), index=None,
+                              placeholder="Choose...", key="p1_all_sel")
+        # 2. Faction Dropdown (MUST use filtered options)
+        if p1_all:
+            # We filter the dataframe here
+            p1_fac_df = p1_all_df[p1_all_df['allegiance'] == p1_all]
+            # We use faction_df to get the unique names for the options
+            p1_fac = st.selectbox("Your Faction", p1_fac_df['faction'].unique(), index=None,
+                                  placeholder="Choose...", key="p1_fac_sel")
+        else:
+            p1_fac = st.selectbox("Your Faction", [], disabled=True)
+        # 3. Sub-Faction Dropdown (MUST use filtered options)
+        if p1_fac:
+            p1_sub_df = p1_fac_df[p1_fac_df['faction'] == p1_fac]
+            p1_sub = st.selectbox("Your Sub-Faction", p1_sub_df['subfaction'].unique(), index=None,
+                                  placeholder="Choose...", key="p1_sub_sel")
+        else:
+            p1_sub = st.selectbox("Your Sub-Faction", [], disabled=True)
+        # p1_wf = st.toggle("Went First?*", key="p1_wf_key", on_change=handle_wf_toggle, args=("p1",))
+
+        st.write("**Opponent Details**")
+
+        # 1. Fetch all profiles from Supabase to check names against
+        # You should wrap this in st.cache_data if your club gets very large
+        profiles_resp = supabase.table("profiles").select("id, full_name").execute()
+        db_profiles = profiles_resp.data  # List of dicts: {'id': '...', 'full_name': '...'}
+        # 2. Text Input for Opponent
+        p2_input = st.text_input("Opponent Name*", key="p2_username",
+                                 help="Type their Discord User Name to link their profile")
+        # 3. Validation Step
+        p2_name = None
+        p2_id = None
+        p2_custom_name = None
+        system_id = None
+
+        if p2_input:
+            # Check if the typed name matches any full_name in our DB
+            matched_user = next((p for p in db_profiles if p['username'].lower() == p2_input.lower()), None)
+
+            if matched_user:
+                p2_id = matched_user['id']
+                st.success(f"✅ User found! This game will be linked to **{matched_user['full_name']}**.")
             else:
-                p1_fac = st.selectbox("Your Faction", [], disabled=True)
-            # 3. Sub-Faction Dropdown (MUST use filtered options)
-            if p1_fac:
-                p1_sub_df = p1_fac_df[p1_fac_df['faction'] == p1_fac]
-                p1_sub = st.selectbox("Your Sub-Faction", p1_sub_df['subfaction'].unique(), index=None,
-                                      placeholder="Choose...", key="p1_sub_sel")
-            else:
-                p1_sub = st.selectbox("Your Sub-Faction", [], disabled=True)
-            # p1_wf = st.toggle("Went First?*", key="p1_wf_key", on_change=handle_wf_toggle, args=("p1",))
+                p2_custom_name = p2_input
+                st.warning("⚠️ User not found. This will be recorded as a 'Guest' game.")
+            p2_name = p2_input
 
-        with col2:
-            st.write("**Opponent Details**")
+        # --- Opponent Faction Logic (Same as P1) ---
+        # Copy your p1_all, p1_fac logic here for the opponent
+        # p2_first = st.text_input("First Name*", key="p2_f")
+        # p2_last = st.text_input("Surname", key="p2_l")
+        # p2_known = st.text_input("Known As", key="p2_k")
 
-            # 1. Fetch all profiles from Supabase to check names against
-            # You should wrap this in st.cache_data if your club gets very large
-            profiles_resp = supabase.table("profiles").select("id, full_name").execute()
-            db_profiles = profiles_resp.data  # List of dicts: {'id': '...', 'full_name': '...'}
-            # 2. Text Input for Opponent
-            p2_input = st.text_input("Opponent Name*", key="p2_username",
-                                     help="Type their Discord User Name to link their profile")
-            # 3. Validation Step
-            p2_name = None
-            p2_id = None
-            p2_custom_name = None
-            system_id = None
-
-            if p2_input:
-                # Check if the typed name matches any full_name in our DB
-                matched_user = next((p for p in db_profiles if p['username'].lower() == p2_input.lower()), None)
-
-                if matched_user:
-                    p2_id = matched_user['id']
-                    st.success(f"✅ User found! This game will be linked to **{matched_user['full_name']}**.")
-                else:
-                    p2_custom_name = p2_input
-                    st.warning("⚠️ User not found. This will be recorded as a 'Guest' game.")
-                p2_name = p2_input
-
-            # --- Opponent Faction Logic (Same as P1) ---
-            # Copy your p1_all, p1_fac logic here for the opponent
-            # p2_first = st.text_input("First Name*", key="p2_f")
-            # p2_last = st.text_input("Surname", key="p2_l")
-            # p2_known = st.text_input("Known As", key="p2_k")
-
-            # 1. Allegiance Dropdown
-            p2_all_df = p2_df_system_factions[p2_df_system_factions['short_name'] == '40K']
-            p2_all = st.selectbox("Opponents Allegiance", p2_all_df['allegiance'].unique(), index=None,
-                                  placeholder="Choose...", key="p2_all_sel")
-            # 2. Faction Dropdown (MUST use filtered options)
-            if p2_all:
-                # We filter the dataframe here
-                p2_fac_df = p2_all_df[p2_all_df['allegiance'] == p2_all]
-                # We use faction_df to get the unique names for the options
-                p2_fac = st.selectbox("Opponents Faction", p2_fac_df['faction'].unique(), index=None,
-                                      placeholder="Choose...", key="p2_fac_sel")
-            else:
-                p2_fac = st.selectbox("Opponents Faction", [], disabled=True)
-            # 3. Sub-Faction Dropdown (MUST use filtered options)
-            if p2_fac:
-                p2_sub_df = p2_fac_df[p2_fac_df['faction'] == p2_fac]
-                p2_sub = st.selectbox("Opponents Sub-Faction", p2_sub_df['subfaction'].unique(), index=None,
-                                      placeholder="Choose...", key="p2_sub_sel")
-            else:
-                p2_sub = st.selectbox("Opponents Sub-Faction", [], disabled=True)
-            # p2_wf = st.toggle("Went First?*", key="p2_wf_key", on_change=handle_wf_toggle, args=("p1",))
+        # 1. Allegiance Dropdown
+        p2_all_df = p2_df_system_factions[p2_df_system_factions['short_name'] == '40K']
+        p2_all = st.selectbox("Opponents Allegiance", p2_all_df['allegiance'].unique(), index=None,
+                              placeholder="Choose...", key="p2_all_sel")
+        # 2. Faction Dropdown (MUST use filtered options)
+        if p2_all:
+            # We filter the dataframe here
+            p2_fac_df = p2_all_df[p2_all_df['allegiance'] == p2_all]
+            # We use faction_df to get the unique names for the options
+            p2_fac = st.selectbox("Opponents Faction", p2_fac_df['faction'].unique(), index=None,
+                                  placeholder="Choose...", key="p2_fac_sel")
+        else:
+            p2_fac = st.selectbox("Opponents Faction", [], disabled=True)
+        # 3. Sub-Faction Dropdown (MUST use filtered options)
+        if p2_fac:
+            p2_sub_df = p2_fac_df[p2_fac_df['faction'] == p2_fac]
+            p2_sub = st.selectbox("Opponents Sub-Faction", p2_sub_df['subfaction'].unique(), index=None,
+                                  placeholder="Choose...", key="p2_sub_sel")
+        else:
+            p2_sub = st.selectbox("Opponents Sub-Faction", [], disabled=True)
+        # p2_wf = st.toggle("Went First?*", key="p2_wf_key", on_change=handle_wf_toggle, args=("p1",))
 
         attacker_id = None
         defender_id = None
