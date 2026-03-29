@@ -319,17 +319,23 @@ else:
             elif not sub_factions_selected:
                 st.error("❌ Both players must select an Allegiance, Faction and Subfaction.")
             else:
-                # FIX 1: Use '=' for assignment, not '=='
+                # 1. Helper to ensure we only use IDs, never names, for UUID columns
+                # This checks if p2_id exists and isn't just a guest name string
+                actual_p2_id = p2_id if p2_id else None
+
+                # 2. Assign Attacker / Defender
                 if attacking_player == "You":
                     attacker_id = st.session_state.user.id
-                    defender_id = p2_id if p2_id else None
+                    defender_id = actual_p2_id
                 else:
-                    attacker_id = p2_id if p2_id else None
+                    attacker_id = actual_p2_id
                     defender_id = st.session_state.user.id
+
+                # 3. Assign Went First
                 if went_first == "You":
                     went_first_id = st.session_state.user.id
                 else:
-                    went_first_id = p2_id if p2_id else None
+                    went_first_id = actual_p2_id
 
                 # Lookup IDs
                 p1_row = p1_df_system_factions[p1_df_system_factions['subfaction'] == p1_sub].iloc[0]
@@ -343,7 +349,7 @@ else:
                     "p1_all": p1_all,
                     "p1_fac": p1_fac,
                     "p1_sub": p1_sub,
-                    "p2_id": p2_id,
+                    "p2_id": actual_p2_id,
                     "p2_name": p2_name,
                     "p1_all": p1_all,
                     "p2_fac": p2_fac,
