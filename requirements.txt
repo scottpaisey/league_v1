@@ -3,3 +3,4 @@ supabase
 python-dotenv
 pandas
 plotly
+streamlit_js_eval
