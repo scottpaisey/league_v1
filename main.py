@@ -17,6 +17,11 @@ from supabase import create_client, ClientOptions
 
 st.set_page_config(page_title="BGC Club App", page_icon="🎲")
 
+def collapse_sidebar():
+    # This clicks the 'X' or 'Chevron' button in the sidebar programmatically
+    streamlit_js_eval(js_expressions='window.parent.document.querySelector("button[kind=\'headerNoPadding\']").click()')
+
+
 @st.cache_resource
 def get_supabase_client():
     load_dotenv()
@@ -102,15 +107,19 @@ else:
     st.sidebar.code(f"DEBUG: Current Page = {st.session_state.page}")
     if st.sidebar.button("Home"):
         st.session_state.page = None
+        collapse_sidebar()
         st.rerun()
     if st.sidebar.button("Log Games"):
         st.session_state.page = "Log Games"
+        collapse_sidebar()
         st.rerun()
     if st.sidebar.button("Events"):
         st.session_state.page = "Events"
+        collapse_sidebar()
         st.rerun()
     if st.sidebar.button("Personal Stats"):
         st.session_state.page = "Personal Stats"
+        collapse_sidebar()
         st.rerun()
     if st.sidebar.button("Log Out"):
         supabase.auth.sign_out()
