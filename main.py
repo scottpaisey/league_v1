@@ -274,60 +274,43 @@ else:
             allegiance_selected = p1_all and p2_all
             factions_selected = p1_fac and p2_fac
             sub_factions_selected = p1_sub and p2_sub
-            if attacking_player == "You":
-                attacker_id == p1_name
-                defender_id == p2_name
-            else:
-                attacker_id == p2_name
-                defender_id == p1_name
 
-            if went_first == "You":
-                went_first_id == p1_name
-            else:
-                went_first_id == p2_name
-
-            # one_goes_first = (p1_wf != p2_wf)  # Logical XOR: one must be True, one False
-            # 2. Check the conditions
             if not names_entered:
                 st.error("❌ Both player names are mandatory.")
             elif not factions_selected:
                 st.error("❌ Both players must select a Faction.")
-            # elif not one_goes_first:
-            #     st.error("❌ Exactly one player must be marked as 'Went First'.")
             else:
-                # --- LOOKUP IDs FOR PLAYER 1 ---
-                # We find the row in df_2 where the name matches what was chosen in the selectbox
+                # FIX 1: Use '=' for assignment, not '=='
+                if attacking_player == "You":
+                    attacker_id = st.session_state.user.id
+                    defender_id = p2_id if p2_id else p2_custom_name
+                else:
+                    attacker_id = p2_id if p2_id else p2_custom_name
+                    defender_id = st.session_state.user.id
+
+                if went_first == "You":
+                    went_first_id = st.session_state.user.id
+                else:
+                    went_first_id = p2_id if p2_id else p2_custom_name
+
+                # Lookup IDs
                 p1_row = p1_df_system_factions[p1_df_system_factions['subfaction'] == p1_sub].iloc[0]
-                # p1_all_id = int(p1_row['allegiance_id'])
-                p1_fac_id = p1_row['faction_id']
-                # p1_sub_id = int(p1_row['sub_faction_id'])
-
-                # --- LOOKUP IDs FOR PLAYER 2 ---
                 p2_row = p2_df_system_factions[p2_df_system_factions['subfaction'] == p2_sub].iloc[0]
-                # p2_all_id = int(p2_row['allegiance_id'])
-                p2_fac_id = p2_row['faction_id']
-                # p2_sub_id = int(p2_row['sub_faction_id'])
 
-                system_id = p1_row['system_id']
-
-                # 3. If all clear, SAVE to session_state and MOVE ON
+                # Store data for the next page
                 st.session_state.game_data = {
-                    "system_id": system_id,     # matches.game_system_id
-                    "game_size": game_size,     # matches.game_size
-                    "p1_first": p1_name,
-                    "p1_fac_id": p1_fac_id,     # matches.p1_faction_id
-                    "p1_all": p1_all,
-                    "p1_fac": p1_fac,
-                    "p1_sub": p1_sub,
-                    "p2_first": p2_name,
-                    "p2_fac_id": p2_fac_id,     # matches.p2_faction_id
-                    "p2_all": p2_all,
-                    "p2_fac": p2_fac,
-                    "p2_sub": p2_sub,
+                    "system_id": p1_row['system_id'],
+                    "p1_id": st.session_state.user.id,
+                    "p2_id": p2_id,
+                    "p2_name": p2_custom_name,
+                    "p1_fac_id": p1_row['faction_id'],
+                    "p2_fac_id": p2_row['faction_id'],
                     "attacker_id": attacker_id,
-                    "defender_id": defender_id,
-                    "went_first_id": went_first_id
+                    "went_first_id": went_first_id,
+                    "game_size": game_size
                 }
+
+                # FIX 2: Switch the page and rerun
                 st.session_state.page = "40k_scores"
                 st.rerun()
 
@@ -459,36 +442,6 @@ else:
                         "is_winner": p1_win,
                         "score_diff": p1_total - p2_total
 
-                        # matches.game_system_id
-                        # matches.event_id
-                        # matches.round_id
-                        # matches.mission_id
-                        # matches.game_size
-                        # matches.player_1_id
-                        # matches.player_2_id
-                        # matches.p1_faction_id
-                        # matches.p2_faction_id
-                        # matches.p1_score_01
-                        # matches.p1_score_02
-                        # matches.p1_score_03
-                        # matches.p1_score_04
-                        # matches.p1_score_05
-                        # matches.p2_score_01
-                        # matches.p2_score_02
-                        # matches.p2_score_03
-                        # matches.p2_score_04
-                        # matches.p2_score_05
-                        # matches.p1_score_mar
-                        # matches.p2_score_mar
-                        # matches.went_first_id
-                        # matches.winner_id
-                        # matches.attacker_id
-                        # matches.is_draw
-                        # matches.played_at
-                        # matches.recorded_by
-                        # matches.club_id
-
-
                     }
                 ]
 
@@ -508,6 +461,11 @@ else:
             if c2.button("❌ No, Edit Scores", use_container_width=True):
                 st.session_state.confirm_submit = False
                 st.rerun()
+
+    elif st.session_state.page == "Events":
+        st.header("Events")
+        st.divider()
+        # Your 40k form goes here
 
 
 
@@ -540,12 +498,6 @@ else:
     # matches.played_at
     # matches.recorded_by
     # matches.club_id
-
-
-    elif st.session_state.page == "Events":
-        st.header("Events")
-        st.divider()
-        # Your 40k form goes here
 
 
 
