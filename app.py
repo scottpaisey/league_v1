@@ -15,6 +15,9 @@ import os
 
 from supabase import create_client, ClientOptions
 
+st.set_page_config(page_title="BGC Club App", page_icon="🎲")
+
+
 @st.cache_resource
 def get_supabase_client():
     load_dotenv()
