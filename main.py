@@ -197,7 +197,7 @@ else:
         st.header("Warhammer 40,000 Game")
         st.divider()
 
-        p2_i2 = None
+        p2_id = None
         p2_name = None
 
         # --- DEBUG MONITOR ---
@@ -205,7 +205,7 @@ else:
             st.write(f"**p2_id:** `{p2_id}`")
             st.write(f"**p2_name:** `{p2_name}`")
             st.write(f"**Type of p2_id:** `{type(p2_id).__name__}`")
-        
+
         try:
             p1_response_system_factions = supabase.table("system_factions").select("*").execute()
             p1_df_system_factions = DataFrame(p1_response_system_factions.data)
