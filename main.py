@@ -479,7 +479,7 @@ else:
                         "p1_score_total": scores['p1_pri'] + scores['p1_sec'] + scores['p1_br'],
                         "p1_score_mar": p1_total - p2_total,
                         "player_2_id": setup['p2_id'],
-                        "player_2_name": setup['p2_id'],
+                        "player_2_name": setup['p2_name'],
                         "p2_faction_id": setup['p2_fac_id'],
                         "p2_score_01": scores['p1_pri'],
                         "p2_score_02": scores['p2_sec'],
