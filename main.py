@@ -17,7 +17,6 @@ from supabase import create_client, ClientOptions
 
 st.set_page_config(page_title="BGC Club App", page_icon="🎲")
 
-
 @st.cache_resource
 def get_supabase_client():
     load_dotenv()
@@ -26,9 +25,7 @@ def get_supabase_client():
     # This forces EVERY auth action to use PKCE (?code=) instead of Implicit (#hash)
     return create_client(url, key, options=ClientOptions(flow_type="pkce"))
 
-
 supabase = get_supabase_client()
-
 
 # Initialize session state variables if they don't exist
 if "page" not in st.session_state:
@@ -45,18 +42,15 @@ if "confirm_submit" not in st.session_state:
 if "game_data" not in st.session_state:
     st.session_state.game_data = {}
 
-
 discord_name = ""
 if "user" in st.session_state:
     # Try to get the name from metadata
     discord_name = st.session_state.user.user_metadata.get('full_name') or \
                    st.session_state.user.user_metadata.get('username') or \
                    st.session_state.user.user_metadata.get('name') or ""
-
     # Also initialize the widget key 'p1_f' if it's not already there
     if "p1_f" not in st.session_state:
         st.session_state.p1_f = discord_name
-
 
 # 2. THE SESSION "CATCHER" (Must be at the top)
 # This handles the redirect from Discord (?code=...)
@@ -153,7 +147,6 @@ else:
     elif st.session_state.page == "40k":
         st.header("Warhammer 40,000 Game")
         st.divider()
-
         # Your 40k form goes here
         try:
             p1_response_system_factions = supabase.table("system_factions").select("*").execute()
@@ -162,14 +155,10 @@ else:
             p2_df_system_factions = DataFrame(p2_response_system_factions.data)
         except Exception as e:
             print(e)
-
         st.subheader("Game Details")
-
         game_size = st.selectbox('Game Size', ['Strike Force', 'Incursion', 'Combat Partol'], index=None,
                                  placeholder="Choose...", key="game_s")
         # mission_pack = st.selectbox(st.selectbox('Mission Pack',['Strike Force (2k)', 'Incursion (1k)', 'Combat Partol'], index=None, placeholder="Choose...")
-
-
         st.write("**Your Details**")
         # Extract the name from Discord metadata
         p1_name = st.text_input("Your Discord Name*", value=discord_name, key="p1_username")
@@ -224,12 +213,6 @@ else:
                 st.warning("⚠️ User not found. This will be recorded as a 'Guest' game.")
             p2_name = p2_input
 
-        # --- Opponent Faction Logic (Same as P1) ---
-        # Copy your p1_all, p1_fac logic here for the opponent
-        # p2_first = st.text_input("First Name*", key="p2_f")
-        # p2_last = st.text_input("Surname", key="p2_l")
-        # p2_known = st.text_input("Known As", key="p2_k")
-
         # 1. Allegiance Dropdown
         p2_all_df = p2_df_system_factions[p2_df_system_factions['short_name'] == '40K']
         p2_all = st.selectbox("Opponents Allegiance", p2_all_df['allegiance'].unique(), index=None,
@@ -273,21 +256,20 @@ else:
 
             if not names_entered:
                 st.error("❌ Both player names are mandatory.")
-            elif not factions_selected:
-                st.error("❌ Both players must select a Faction.")
+            elif not sub_factions_selected:
+                st.error("❌ Both players must select an Allegiance, Faction and Subfaction.")
             else:
                 # FIX 1: Use '=' for assignment, not '=='
                 if attacking_player == "You":
                     attacker_id = st.session_state.user.id
-                    defender_id = p2_id if p2_id else p2_custom_name
+                    defender_id = p2_id if p2_id else None
                 else:
-                    attacker_id = p2_id if p2_id else p2_custom_name
+                    attacker_id = p2_id if p2_id else None
                     defender_id = st.session_state.user.id
-
                 if went_first == "You":
                     went_first_id = st.session_state.user.id
                 else:
-                    went_first_id = p2_id if p2_id else p2_custom_name
+                    went_first_id = p2_id if p2_id else None
 
                 # Lookup IDs
                 p1_row = p1_df_system_factions[p1_df_system_factions['subfaction'] == p1_sub].iloc[0]
@@ -297,11 +279,13 @@ else:
                 st.session_state.game_data = {
                     "system_id": p1_row['system_id'],
                     "p1_id": st.session_state.user.id,
+                    "p1_name": p1_name,
                     "p2_id": p2_id,
                     "p2_name": p2_custom_name,
                     "p1_fac_id": p1_row['faction_id'],
                     "p2_fac_id": p2_row['faction_id'],
                     "attacker_id": attacker_id,
+                    "defender_id": attacker_id,
                     "went_first_id": went_first_id,
                     "game_size": game_size
                 }
@@ -315,25 +299,26 @@ else:
         st.subheader("Game Scores")
         st.divider()
 
+        system_id = st.session_state.game_data.get("system_id", None)
         game_size = st.session_state.game_data.get("game_size", None)
 
         attacker_id = st.session_state.game_data.get("attacker_id", None)
         defender_id = st.session_state.game_data.get("defender_id", None)
         went_first_id = st.session_state.game_data.get("went_first_id", None)
 
-        p1_name = st.session_state.game_data.get("p1_first", None)
+        p1_id = st.session_state.game_data.get("p1_id", None)
+        p1_name = st.session_state.game_data.get("p1_name", None)
         p1_fac_id = st.session_state.game_data.get("p1_fac_id", None)
         p1_all = st.session_state.game_data.get("p1_all", None)
         p1_fac = st.session_state.game_data.get("p1_fac", None)
         p1_sub = st.session_state.game_data.get("p1_sub", None)
-        # p1_wf     = st.session_state.game_data.get("p1_wf", None)
 
+        p2_id = st.session_state.game_data.get("p2_id", None)
         p2_name = st.session_state.game_data.get("p2_first", None)
         p2_fac_id = st.session_state.game_data.get("p2_fac_id", None)
         p2_all = st.session_state.game_data.get("p2_all", None)
         p2_fac = st.session_state.game_data.get("p2_fac", None)
         p2_sub = st.session_state.game_data.get("p2_sub", None)
-        # p2_wf     = st.session_state.game_data.get("p2_wf", None)
 
         # 1. The Data Entry Form
         if not st.session_state.confirm_submit:
@@ -372,35 +357,32 @@ else:
         else:
             st.warning("⚠️ **Confirm Game Results**")
             st.write("Please review the details below. **These cannot currently be changed after posting.**")
-
             # Display all gathered info
             setup = st.session_state.game_data
             scores = st.session_state.temp_scores
-
-            # Calculate Totals
             # Calculate Totals
             p1_total = scores['p1_pri'] + scores['p1_sec'] + scores['p1_br']
             p2_total = scores['p2_pri'] + scores['p2_sec'] + scores['p2_br']
 
             # Determine Results
             if p1_total > p2_total:
-                winner_id, loser_id = p1_name, p2_name
+                winner_id, loser_id = p1_id, p2_id
                 is_draw = False
             elif p2_total > p1_total:
-                winner_id, loser_id = p2_name, p1_name
+                winner_id, loser_id = p2_id, p1_id
                 is_draw = False
             else:
                 winner_id, loser_id = None, None
                 is_draw = True
 
             col_a, col_b = st.columns(2)
-            col_a.write(f"Name: **{setup['p1_first']}**"
+            col_a.write(f"Name: **{setup['p1_name']}**"
                         f"\n\nFaction: {setup['p1_fac']}"
                         f"\n\nDetatchment: {setup['p1_sub']}"
                         f"\n\nPrimary: {scores['p1_pri']}"
                         f"\n\nSecondary: {scores['p1_sec']}"
                         f"\n\nBattle Ready: {scores['p1_br']}")
-            col_b.write(f"Name: **{setup['p2_first']}**"
+            col_b.write(f"Name: **{setup['p2_name']}**"
                         f"\n\nFaction: {setup['p2_fac']}"
                         f"\n\nDetatchment: {setup['p2_sub']}"
                         f"\n\nPrimary: {scores['p2_pri']}"
@@ -410,38 +392,43 @@ else:
             c1, c2 = st.columns(2)
             if c1.button("✅ Yes, Post Results", type="primary", use_container_width=True):
                 # --- DATABASE INSERT LOGIC HERE ---
-
-                game_payload = {
-                    "system_id": 1,  # Stored from your 40k page lookup
-                    "game_size": setup['game_size'],  # Or a variable if you have one
-                    "status": "completed"
-                }
-
                 # inserting game data into table
-
-                game_resp = supabase.table("bgc_games").insert(game_payload).execute()
-                # Grab the auto-generated ID to link the players
-                new_game_id = game_resp.data[0]['id']
-
-                # inserting game data into table
-                player_entries = [
+                match_details = [
                     {
                         "game_system_id": setup['system_id'],
-                        "game_id": new_game_id,
-                        "player_1_id": p1_name,
-                        "faction_id": p1_fac_id,
-                        "primary_score": scores['p1_pri'],
-                        "secondary_score": scores['p1_sec'],
-                        "bonus_score": 10 if scores['p1_br'] else 0,
-                        "went_first": scores['p1_wf'],
-                        "result": p1_res,
-                        "is_winner": p1_win,
-                        "score_diff": p1_total - p2_total
-
+                        "event_id": None,
+                        "round_id": None,
+                        "mission_id": None,
+                        "game_size": setup['game_size'],
+                        "player_1_id": setup['p1_id'],
+                        "player_2_id": setup['p2_id'],
+                        "p1_faction_id": setup['p1_fac_id'],
+                        "p2_faction_id": setup['p2_fac_id'],
+                        "p1_score_01": scores['p1_pri'],
+                        "p1_score_02": scores['p1_sec'],
+                        "p1_score_03": scores['p1_br'],
+                        "p1_score_04": 0,
+                        "p1_score_05": 0,
+                        "p2_score_01": scores['p1_pri'],
+                        "p2_score_02": scores['p2_sec'],
+                        "p2_score_03": scores['p2_br'],
+                        "p2_score_04": 0,
+                        "p2_score_05": 0,
+                        "p1_score_mar": p1_total - p2_total,
+                        "p2_score_mar": p2_total - p1_total,
+                        "went_first_id": setup['went_first_id'],
+                        "winner_id": winner_id,
+                        "loser_id": loser_id,
+                        "attacker_id": setup['attacker_id'],
+                        "defender_id": setup['defender_id'],
+                        "is_draw": is_draw,
+                        # "played_at": ,
+                        "recorded_by":  setup['p1_id']
+                        # "club_id": ,
                     }
                 ]
 
-                supabase.table("matches").insert(player_entries).execute()
+                supabase.table("matches").insert(match_details).execute()
 
                 st.success("Game posted to Supabase!")
 
@@ -462,38 +449,5 @@ else:
         st.header("Events")
         st.divider()
         # Your 40k form goes here
-
-
-
-    # matches.id
-    # matches.game_system_id
-    # matches.event_id
-    # matches.round_id
-    # matches.mission_id
-    # matches.game_size
-    # matches.player_1_id
-    # matches.player_2_id
-    # matches.p1_faction_id
-    # matches.p2_faction_id
-    # matches.p1_score_01
-    # matches.p1_score_02
-    # matches.p1_score_03
-    # matches.p1_score_04
-    # matches.p1_score_05
-    # matches.p2_score_01
-    # matches.p2_score_02
-    # matches.p2_score_03
-    # matches.p2_score_04
-    # matches.p2_score_05
-    # matches.p1_score_mar
-    # matches.p2_score_mar
-    # matches.went_first_id
-    # matches.winner_id
-    # matches.attacker_id
-    # matches.is_draw
-    # matches.played_at
-    # matches.recorded_by
-    # matches.club_id
-
 
 
