@@ -102,6 +102,7 @@ if "user" not in st.session_state:
 else:
     # --- EVERYTHING BELOW RUNS ONLY WHEN LOGGED IN ---
     st.sidebar.success(f"Logged in as {st.session_state.user.user_metadata.get('full_name')}")
+    st.sidebar.code(f"DEBUG: Current Page = {st.session_state.page}")
     if st.sidebar.button("Home"):
         st.session_state.page = None
         st.rerun()
@@ -311,15 +312,11 @@ else:
                     "system_id": system_id,     # matches.game_system_id
                     "game_size": game_size,     # matches.game_size
                     "p1_first": p1_name,
-                    # "p1_last": p1_last,
-                    # "p1_known": p1_known,
                     "p1_fac_id": p1_fac_id,     # matches.p1_faction_id
                     "p1_all": p1_all,
                     "p1_fac": p1_fac,
                     "p1_sub": p1_sub,
                     "p2_first": p2_name,
-                    # "p2_last": p2_last,
-                    # "p2_known": p2_known,
                     "p2_fac_id": p2_fac_id,     # matches.p2_faction_id
                     "p2_all": p2_all,
                     "p2_fac": p2_fac,
