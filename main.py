@@ -124,6 +124,10 @@ else:
         st.session_state.page = "Events"
         collapse_sidebar()
         st.rerun()
+    if st.sidebar.button("Graphs"):
+        st.session_state.page = "Graphs"
+        collapse_sidebar()
+        st.rerun()
     if st.sidebar.button("Personal Stats"):
         st.session_state.page = "Personal Stats"
         collapse_sidebar()
@@ -532,6 +536,14 @@ else:
         st.header("Events")
         st.divider()
         # Your 40k form goes here
+
+    elif st.session_state.page == "Graphs":
+        st.header("Graphs")
+        st.write(f"View all the club statistics in one place!")
+        st.divider()
+        # Your 40k form goes here
+        
+        
 
     elif st.session_state.page == "Personal Stats":
         st.header("Personal Stats")
