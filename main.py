@@ -18,8 +18,17 @@ from supabase import create_client, ClientOptions
 st.set_page_config(page_title="BGC Club App", page_icon="🎲")
 
 def collapse_sidebar():
-    # Targets the close 'X' or chevron button in the Streamlit sidebar
-    streamlit_js_eval(js_expressions='window.parent.document.querySelector("button[kind=\'headerNoPadding\']").click()')
+    # 1. More reliable selector for the sidebar toggle
+    # 2. Add a tiny delay to ensure button exists
+    js = """
+    setTimeout(function() {
+        var btn = window.parent.document.querySelector('button[data-testid="stSidebarCollapse"]');
+        if (btn) {
+            btn.click();
+        }
+    }, 10);
+    """
+    streamlit_js_eval(js_expressions=js)
 
 @st.cache_resource
 def get_supabase_client():
