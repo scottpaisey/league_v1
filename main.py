@@ -525,4 +525,52 @@ else:
         st.divider()
         # Your 40k form goes here
 
+    elif st.session_state.page == "Personal Stats":
+        st.header("Personal Stats")
+        st.divider()
+        # Your 40k form goes here
+    
+        # 1. Get the current user's name for filtering
+        # (Assuming discord_name is established from st.session_state.user at the top)
+        current_user = discord_name 
+        
+        # 2. Fetch matches where the user is P1 OR P2
+        # We use the .or_() filter on the view's column names
+        res = supabase.table("match_results") \
+            .select("*") \
+            .or_(f"display_p1_name.eq.{current_user},display_p2_name.eq.{current_user}") \
+            .order("game_date", desc=True) \
+            .limit(10) \
+            .execute()
+        
+        if res.data:
+            recent_df = DataFrame(res.data)
+            st.subheader("Your Latest 10 Battle Reports")
+            st.dataframe(
+                recent_df,
+                column_order=(
+                    "game_date",
+                    "system_name",
+                    "display_p1_name",
+                    "p1_faction",
+                    "p1_score_total",
+                    "display_p2_name",
+                    "p2_faction",
+                    "p2_score_total"
+                ),
+                column_config={
+                    "game_date": "Date",
+                    "system_name": "System",
+                    "display_p1_name": "Player 1",
+                    "p1_faction": "P1 Faction",
+                    "p1_score_total": "P1 Score",
+                    "display_p2_name": "Player 2",
+                    "p2_faction": "P2 Faction",
+                    "p2_score_total": "P2 Score"
+                },
+                use_container_width=True,
+                hide_index=True
+            )
+        else:
+            st.info("You haven't logged any games yet. Get to the table!")
 
