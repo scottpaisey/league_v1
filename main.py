@@ -196,7 +196,16 @@ else:
     elif st.session_state.page == "40k":
         st.header("Warhammer 40,000 Game")
         st.divider()
-        # Your 40k form goes here
+
+        p2_i2 = None
+        p2_name = None
+
+        # --- DEBUG MONITOR ---
+        with st.sidebar.expander("🔍 Variable Monitor", expanded=True):
+            st.write(f"**p2_id:** `{p2_id}`")
+            st.write(f"**p2_name:** `{p2_name}`")
+            st.write(f"**Type of p2_id:** `{type(p2_id).__name__}`")
+        
         try:
             p1_response_system_factions = supabase.table("system_factions").select("*").execute()
             p1_df_system_factions = DataFrame(p1_response_system_factions.data)
@@ -437,7 +446,7 @@ else:
 
             # Determine Results
             if p1_total > p2_total:
-                winner_id, loser_id = setup['p1_id'], setup['p2_id']                
+                winner_id, loser_id = setup['p1_id'], setup['p2_id']
                 is_draw = False
             elif p2_total > p1_total:
                 winner_id, loser_id = setup['p2_id'], setup['p1_id']
