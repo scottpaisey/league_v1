@@ -18,33 +18,18 @@ from supabase import create_client, ClientOptions
 st.set_page_config(page_title="BGC Club App", page_icon="🎲")
 
 def collapse_sidebar():
-    # 1. More reliable selector for the sidebar toggle
-    # 2. Add a tiny delay to ensure button exists
-    js = """
-    setTimeout(function() {
-        var btn = window.parent.document.querySelector('button[data-testid="stSidebarCollapse"]');
-        if (btn) {
-            btn.click();
-        }
-    }, 10);
-    """
-    streamlit_js_eval(js_expressions=js)
+    # Targets the close 'X' or chevron button in the Streamlit sidebar
+    streamlit_js_eval(js_expressions='window.parent.document.querySelector("button[kind=\'headerNoPadding\']").click()')
 
-def create_supabase_session():
+@st.cache_resource
+def get_supabase_client():
+    load_dotenv()
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_KEY")
-    
-    # Store the client directly in the user's private session_state
-    if "supabase" not in st.session_state:
-        st.session_state.supabase = create_client(
-            url, 
-            key, 
-            options=ClientOptions(flow_type="pkce")
-        )
-    return st.session_state.supabase
+    # This forces EVERY auth action to use PKCE (?code=) instead of Implicit (#hash)
+    return create_client(url, key, options=ClientOptions(flow_type="pkce"))
 
-# 2. Initialize the session-bound client
-supabase = create_supabase_session()
+supabase = get_supabase_client()
 
 # Initialize session state variables if they don't exist
 if "page" not in st.session_state:
@@ -71,53 +56,24 @@ if "user" in st.session_state:
     if "p1_f" not in st.session_state:
         st.session_state.p1_f = discord_name
 
-## 2. THE SESSION "CATCHER" (Must be at the top)
-## This handles the redirect from Discord (?code=...)
-#if "code" in st.query_params:
-    #try:
-        #auth_code = st.query_params["code"]
-        #res = supabase.auth.exchange_code_for_session({"auth_code": auth_code})
-        #st.session_state.user = res.user
-        #st.query_params.clear()
-        #st.rerun()  # Immediately stops this run and starts a fresh one as "Logged In"
-    #except Exception as e:
-        #st.error(f"Login Sync Failed: {e}")
-
-# --- 2. THE SESSION CATCHER ---
-# Check if we are returning from Discord with a code
+# 2. THE SESSION "CATCHER" (Must be at the top)
+# This handles the redirect from Discord (?code=...)
 if "code" in st.query_params:
     try:
-        # 1. Grab the code from the URL
         auth_code = st.query_params["code"]
-        
-        # 2. Exchange it for a real session
-        # This works now because the client was already in session_state 
-        # and kept its "verifier" secret!
         res = supabase.auth.exchange_code_for_session({"auth_code": auth_code})
-        
-        # 3. Store the user and clear the URL
         st.session_state.user = res.user
         st.query_params.clear()
-        st.rerun()
+        st.rerun()  # Immediately stops this run and starts a fresh one as "Logged In"
     except Exception as e:
-        st.error(f"Login failed: {e}")
-        if st.button("Restart Login"):
-            st.query_params.clear()
-            st.rerun()
-
-# 3. PERSISTENT SYNC (If already logged in)
-if "user" not in st.session_state:
-    user_resp = supabase.auth.get_user()
-    if user_resp and user_resp.user:
-        st.session_state.user = user_resp.user
-
-
+        st.error(f"Login Sync Failed: {e}")
 
 # 3. PERSISTENT USER SYNC
 if "user" not in st.session_state:
     user_resp = supabase.auth.get_user()
     if user_resp and user_resp.user:
         st.session_state.user = user_resp.user
+
 
 # 4. LOGIN FUNCTION
 def show_login_screen():
@@ -147,7 +103,7 @@ if "user" not in st.session_state:
 else:
     # --- EVERYTHING BELOW RUNS ONLY WHEN LOGGED IN ---
     st.sidebar.success(f"Logged in as {st.session_state.user.user_metadata.get('full_name')}")
-    # st.sidebar.code(f"DEBUG: Current Page = {st.session_state.page}")
+    st.sidebar.code(f"DEBUG: Current Page = {st.session_state.page}")
     if st.sidebar.button("Home"):
         st.session_state.page = None
         collapse_sidebar()
@@ -158,10 +114,6 @@ else:
         st.rerun()
     if st.sidebar.button("Events"):
         st.session_state.page = "Events"
-        collapse_sidebar()
-        st.rerun()
-    if st.sidebar.button("Graphs"):
-        st.session_state.page = "Graphs"
         collapse_sidebar()
         st.rerun()
     if st.sidebar.button("Personal Stats"):
@@ -244,7 +196,7 @@ else:
         # mission_pack = st.selectbox(st.selectbox('Mission Pack',['Strike Force (2k)', 'Incursion (1k)', 'Combat Partol'], index=None, placeholder="Choose...")
         st.write("**Your Details**")
         # Extract the name from Discord metadata
-        p1_name = st.text_input("Your Discord Name*", value=discord_name, key="p1_username", disabled=True)
+        p1_name = st.text_input("Your Discord Name*", value=discord_name, key="p1_username")
         # p1_last = st.text_input("Surname", key="p1_l")
         # p1_known = st.text_input("Known As", key="p1_k")
         # 1. Allegiance Dropdown
@@ -276,7 +228,7 @@ else:
         profiles_resp = supabase.table("profiles").select("id, full_name").execute()
         db_profiles = profiles_resp.data  # List of dicts: {'id': '...', 'full_name': '...'}
         # 2. Text Input for Opponent
-        p2_input = st.text_input("Opponent Discord Name*", key="p2_username",
+        p2_input = st.text_input("Opponent Name*", key="p2_username",
                                  help="Type their Discord User Name to link their profile")
         # 3. Validation Step
         p2_id = None
@@ -539,16 +491,16 @@ else:
                     }
 
                 # --- DEBUG MONITOR ---
-                #with st.sidebar.expander("🔍 Variable Monitor", expanded=True):
-                    #st.write(f"**p2_id:** `{p2_id}`")
-                    #st.write(f"**p2_name:** `{p2_name}`")
-                    #st.write(f"**Type of p2_id:** `{type(p2_id).__name__}`")
-                    #st.write("### 🚨 Database Submission Debug")
-                    #for key, value in match_details.items():
-                        #if value == "krystal":
-                            #st.error(
-                                #f"FOUND THE ERROR: The column **'{key}'** is trying to send 'krystal' but it needs to be NULL (None).")
-                    #st.json(match_details)  # This shows you the whole dictionary
+                with st.sidebar.expander("🔍 Variable Monitor", expanded=True):
+                    st.write(f"**p2_id:** `{p2_id}`")
+                    st.write(f"**p2_name:** `{p2_name}`")
+                    st.write(f"**Type of p2_id:** `{type(p2_id).__name__}`")
+                    st.write("### 🚨 Database Submission Debug")
+                    for key, value in match_details.items():
+                        if value == "krystal":
+                            st.error(
+                                f"FOUND THE ERROR: The column **'{key}'** is trying to send 'krystal' but it needs to be NULL (None).")
+                    st.json(match_details)  # This shows you the whole dictionary
                 # -----------------------------
 
                 supabase.table("matches").insert(match_details).execute()
@@ -573,23 +525,15 @@ else:
         st.divider()
         # Your 40k form goes here
 
-    elif st.session_state.page == "Graphs":
-        st.header("Graphs")
-        st.write(f"View all the club statistics in one place!")
-        st.divider()
-        # Your 40k form goes here
-        
-        
-
     elif st.session_state.page == "Personal Stats":
         st.header("Personal Stats")
         st.divider()
         # Your 40k form goes here
-    
+
         # 1. Get the current user's name for filtering
         # (Assuming discord_name is established from st.session_state.user at the top)
-        current_user = discord_name 
-        
+        current_user = discord_name
+
         # 2. Fetch matches where the user is P1 OR P2
         # We use the .or_() filter on the view's column names
         res = supabase.table("match_results") \
@@ -598,7 +542,7 @@ else:
             .order("game_date", desc=True) \
             .limit(10) \
             .execute()
-        
+
         if res.data:
             recent_df = DataFrame(res.data)
             st.subheader("Your Latest 10 Battle Reports")
