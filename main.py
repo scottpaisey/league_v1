@@ -116,6 +116,10 @@ else:
         st.session_state.page = "Events"
         collapse_sidebar()
         st.rerun()
+    if st.sidebar.button("Graphs"):
+        st.session_state.page = "Graphs"
+        collapse_sidebar()
+        st.rerun()
     if st.sidebar.button("Personal Stats"):
         st.session_state.page = "Personal Stats"
         collapse_sidebar()
@@ -523,13 +527,18 @@ else:
     elif st.session_state.page == "Events":
         st.header("Events")
         st.divider()
-        # Your 40k form goes here
+        # Data here
+
+    elif st.session_state.page == "Graphs":
+        st.header("Graphs")
+        st.divider()
+        # Data here
+
+        
 
     elif st.session_state.page == "Personal Stats":
         st.header("Personal Stats")
         st.divider()
-        # Your 40k form goes here
-
         # 1. Get the current user's name for filtering
         # (Assuming discord_name is established from st.session_state.user at the top)
         current_user = discord_name
@@ -571,6 +580,8 @@ else:
                 use_container_width=True,
                 hide_index=True
             )
+
+
         else:
             st.info("You haven't logged any games yet. Get to the table!")
 
