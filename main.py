@@ -39,7 +39,7 @@ def create_supabase_session():
         st.session_state.supabase = create_client(
             url, 
             key, 
-            options=ClientOptions(flow_type="pkce")
+            options=ClientOptions(flow_type="implicit")
         )
     return st.session_state.supabase
 
@@ -71,17 +71,37 @@ if "user" in st.session_state:
     if "p1_f" not in st.session_state:
         st.session_state.p1_f = discord_name
 
-# 2. THE SESSION "CATCHER" (Must be at the top)
-# This handles the redirect from Discord (?code=...)
-if "code" in st.query_params:
+## 2. THE SESSION "CATCHER" (Must be at the top)
+## This handles the redirect from Discord (?code=...)
+#if "code" in st.query_params:
+    #try:
+        #auth_code = st.query_params["code"]
+        #res = supabase.auth.exchange_code_for_session({"auth_code": auth_code})
+        #st.session_state.user = res.user
+        #st.query_params.clear()
+        #st.rerun()  # Immediately stops this run and starts a fresh one as "Logged In"
+    #except Exception as e:
+        #st.error(f"Login Sync Failed: {e}")
+
+# 2. THE SESSION "CATCHER"
+# Implicit flow handles the URL fragments automatically behind the scenes.
+# We just need to check if the Supabase client successfully grabbed the user.
+
+if "user" not in st.session_state:
     try:
-        auth_code = st.query_params["code"]
-        res = supabase.auth.exchange_code_for_session({"auth_code": auth_code})
-        st.session_state.user = res.user
-        st.query_params.clear()
-        st.rerun()  # Immediately stops this run and starts a fresh one as "Logged In"
+        # Check if the client already has a session (from a recent redirect)
+        user_resp = supabase.auth.get_user()
+        
+        if user_resp and user_resp.user:
+            st.session_state.user = user_resp.user
+            # Clear any leftover login junk from the URL for a clean look
+            st.query_params.clear() 
+            st.rerun()
+            
     except Exception as e:
-        st.error(f"Login Sync Failed: {e}")
+        # If there's no user yet, we just stay on the login screen quietly
+        pass 
+
 
 # 3. PERSISTENT USER SYNC
 if "user" not in st.session_state:
@@ -102,7 +122,7 @@ def show_login_screen():
         response = supabase.auth.sign_in_with_oauth({
             "provider": "discord",
             "options": {"redirect_to": redirect_uri},
-            "flow_type": "pkce"
+            "flow_type": "implicit"
         })
         if response and hasattr(response, 'url'):
             st.link_button("Sign in with Discord", response.url)
