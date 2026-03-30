@@ -30,15 +30,21 @@ def collapse_sidebar():
     """
     streamlit_js_eval(js_expressions=js)
 
-@st.cache_resource
-def get_supabase_client():
-    load_dotenv()
+def create_supabase_session():
     url = os.getenv("SUPABASE_URL")
     key = os.getenv("SUPABASE_KEY")
-    # This forces EVERY auth action to use PKCE (?code=) instead of Implicit (#hash)
-    return create_client(url, key, options=ClientOptions(flow_type="pkce"))
+    
+    # Store the client directly in the user's private session_state
+    if "supabase" not in st.session_state:
+        st.session_state.supabase = create_client(
+            url, 
+            key, 
+            options=ClientOptions(flow_type="pkce")
+        )
+    return st.session_state.supabase
 
-supabase = get_supabase_client()
+# 2. Initialize the session-bound client
+supabase = create_supabase_session()
 
 # Initialize session state variables if they don't exist
 if "page" not in st.session_state:
