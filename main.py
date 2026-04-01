@@ -149,7 +149,7 @@ else:
         # Fetch from your new view
         res = supabase.table("match_results").select("*").order("game_date", desc=True).limit(10).execute()
         if res.data:
-            recent_df = pd.Dataframe(res.data)
+            recent_df = pd.DataFrame(res.data)
             st.subheader("Latest 10 Battle Reports")
             st.dataframe(
                 recent_df,
