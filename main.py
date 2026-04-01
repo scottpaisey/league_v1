@@ -674,11 +674,11 @@ else:
                 st.divider()
                 show_faction_turnout(event_df)
 
-                    # --- REPORT 4: POINTS PER ALLEGIANCE (PIE CHART) ---
+                # --- REPORT 4: POINTS PER ALLEGIANCE (PIE CHART) ---
                 def show_allegiance_points_pie(df):
                     st.subheader(f"🍰 {selected_event} Points per Allegiance")
                     
-                    # Unpivot: Get scores and allegiances for both Player 1 and Player 2
+                    # 1. Unpivot scores and allegiances
                     p1_data = df[['p1_allegiance', 'p1_score_total']].copy()
                     p1_data.columns = ['allegiance', 'score']
                     
@@ -687,23 +687,36 @@ else:
                     
                     combined = pd.concat([p1_data, p2_data])
                     
-                    # Group by allegiance and sum the scores
+                    # 2. Aggregate and sort for better visual flow
                     agg_data = combined.groupby('allegiance')['score'].sum().reset_index()
+                    agg_data = agg_data.sort_values(by='score', ascending=False)
                     
-                    # Create the Pie/Donut Chart
+                    # 3. Create a custom label for each slice: "Allegiance (Total Pts)"
+                    agg_data['label'] = agg_data['allegiance'] + " (" + agg_data['score'].astype(str) + " pts)"
+                
+                    # 4. Create the Donut Chart
                     fig = px.pie(
                         agg_data,
                         values='score',
-                        names='allegiance',
-                        title=f"Total Points Distribution for {selected_event}",
-                        hole=0.4,
-                        color_discrete_sequence=px.colors.qualitative.Safe
+                        names='label', # Use our new custom label
+                        hole=0.5,      # Increased hole size for a more modern "Ring" look
+                        color_discrete_sequence=px.colors.qualitative.Bold,
+                        # This adds the total event points in the centre of the donut!
+                        title=f"Total Event Points: {agg_data['score'].sum():,}"
                     )
                     
-                    # Show percentage and label on the slices
-                    fig.update_traces(textinfo='percent+label')
+                    # 5. Styling: Show percentage + the custom label
+                    fig.update_traces(
+                        textinfo='percent+label',
+                        pull=[0.05] * len(agg_data), # Slightly "explodes" slices for a 3D effect
+                        marker=dict(line=dict(color='#000000', width=1)) # Adds thin border
+                    )
                     
+                    # Position the legend at the bottom to save horizontal space
+                    fig.update_layout(showlegend=False)
+                
                     st.plotly_chart(fig, use_container_width=True)
+
 
                 # Run the new report
                 st.divider()
