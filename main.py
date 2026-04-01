@@ -538,25 +538,52 @@ else:
         st.divider()
         # Data here
 
+        # 1. Fetch unique event names for the dropdown
+        event_res = supabase.table("match_results").select("league_name").execute()
+        if event_res.data:
+            # Get unique names and add an "All Events" option
+            all_events = sorted(list(set([row['league_name'] for row in event_res.data if row['league_name']])))
+            event_options = ["All Events"] + all_events
+            selected_event = st.selectbox("Filter by Event", event_options)
+            # 2. Build the query based on selection
+            query = supabase.table("match_results").select("*")
+            if selected_event != "All Events":
+                query = query.eq("league_name", selected_event)
+            res = query.execute()
+        else:
+            res = None
+
         def show_leaderboard():
             st.header("🏆 Player Rankings")
 
-            # 1. Fetch data from your Match Results view (the one with names and scores)
-            # We fetch more than 10 because we need all records to calculate true ranks
+            # 1. Fetch ALL data first to get the list of events
             res = supabase.table("match_results").select("*").execute()
 
             if not res.data:
                 st.info("No matches logged yet to calculate rankings.")
                 return
 
-            df = pd.DataFrame(res.data)
+            all_data_df = pd.DataFrame(res.data)
+
+            # --- NEW: Selection Box for Filtering ---
+            # Get unique event names and handle potential None values
+            unique_events = sorted(list(set([row for row in all_data_df['league_name'] if row])))
+            event_options = ["All Events"] + unique_events
+            selected_event = st.selectbox("Filter Rankings by Event", event_options, key="leaderboard_event_filter")
+
+            # Apply the filter to our working dataframe
+            if selected_event != "All Events":
+                df = all_data_df[all_data_df['league_name'] == selected_event].copy()
+            else:
+                df = all_data_df.copy()
+
+            if df.empty:
+                st.warning(f"No matches found for {selected_event}")
+                return
 
             # 2. Process Player 1 and Player 2 into a single list of performances
-            # We need to know: Name, Was it a Win?, What was the Score?
-            p1_data = df[['display_p1_name', 'p1_score_total', 'display_p1_name']].copy()
+            p1_data = df[['display_p1_name', 'p1_score_total', 'display_p2_name']].copy()
             p1_data.columns = ['player', 'score', 'opponent']
-            # Check if they won (this assumes your view has a 'winner_name' or similar)
-            # If not, we compare scores:
             p1_data['is_win'] = df['p1_score_total'] > df['p2_score_total']
 
             p2_data = df[['display_p2_name', 'p2_score_total', 'display_p1_name']].copy()
@@ -599,16 +626,28 @@ else:
         def show_faction_win_rates():
             st.subheader("📊 Faction Win Rates")
         
-            # 1. Fetch data from your 'match_results' view
-            res = supabase.table("match_results").select("*").execute()
+            # --- STEP 1: DROPDOWN FILTER ---
+            event_res = supabase.table("match_results").select("league_name").execute()
+            event_options = ["All Events"]
+            if event_res.data:
+                event_options += sorted(list(set([row['league_name'] for row in event_res.data if row['league_name']])))
             
-            if not res.data:
-                st.info("No matches found to calculate win rates.")
+            selected_event = st.selectbox("Select Event / League", event_options)
+        
+            # --- STEP 2: FETCH FILTERED DATA ---
+            query = supabase.table("match_results").select("*")
+            if selected_event != "All Events":
+                query = query.eq("league_name", selected_event)
+            
+            res = query.execute()
+            
+            if not res or not res.data:
+                st.warning(f"No match data found for {selected_event}.")
                 return
         
             df = pd.DataFrame(res.data)
         
-            # 2. Unpivot: Create a 'long' format so every row is one faction's performance
+            # --- STEP 3: DATA PROCESSING ---
             p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
             p1_data.columns = ['faction', 'score', 'opp_score']
             
@@ -616,8 +655,6 @@ else:
             p2_data.columns = ['faction', 'score', 'opp_score']
             
             combined = pd.concat([p1_data, p2_data])
-        
-            # 3. Calculate Win Rate per Faction
             combined['is_win'] = combined['score'] > combined['opp_score']
             
             faction_stats = combined.groupby('faction').agg(
@@ -626,31 +663,25 @@ else:
             ).reset_index()
         
             faction_stats['Win_Rate'] = (faction_stats['Wins'] / faction_stats['Total_Games'] * 100).round(1)
+            faction_stats = faction_stats.sort_values(by='Win_Rate', ascending=False)
         
-            # 4. Filter for factions with at least 1 game and sort by Win Rate
-            faction_stats = faction_stats[faction_stats['Total_Games'] > 0].sort_values(by='Win_Rate', ascending=False)
-        
-            # 5. Create Plotly Bar Chart
+            # --- STEP 4: PLOT CHART ---
             fig = px.bar(
                 faction_stats,
                 x='faction',
                 y='Win_Rate',
                 text='Win_Rate',
+                title=f"Win Rates for {selected_event}",
                 labels={'Win_Rate': 'Win Rate (%)', 'faction': 'Faction'},
                 color='Win_Rate',
-                color_continuous_scale='RdYlGn', # Red-Yellow-Green scale
+                color_continuous_scale='RdYlGn',
                 height=500
             )
-        
-            # Clean up layout
             fig.update_traces(texttemplate='%{text}%', textposition='outside')
-            fig.update_layout(yaxis_range=[0, 100], showlegend=False)
+            fig.update_layout(yaxis_range=[0, 110])
         
-            # 6. Display in Streamlit
             st.plotly_chart(fig, use_container_width=True)
-        
-        # Call the function in your Graphs page
-        show_faction_win_rates()
+
 
     
 
