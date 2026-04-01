@@ -597,6 +597,8 @@ else:
                         use_container_width=True
                     )
 
+                    return leaderboard
+
                 # --- REPORT 2: FACTION WIN RATES ---
                 def show_faction_win_rates(df):
                     st.subheader(f"📊 {selected_event} Faction Meta")
@@ -635,7 +637,9 @@ else:
 
                 # Run both reports using the filtered event_df
                 show_leaderboard(event_df)
+                
                 st.divider()
+                
                 show_faction_win_rates(event_df)
 
                                 # --- REPORT 3: FACTION TURN OUT (PIE CHART) ---
@@ -766,7 +770,18 @@ else:
                     martyr = leaderboard.sort_values(['Wins', 'Avg_Score'], ascending=[True, False])
                     c2.info(f"**The Eternal Martyr:** {martyr.iloc[0]['player']} (Highest Avg in Defeat)")
 
-                show_event_awards(event_df, show_leaderboard(event_df))
+                # show_event_awards(event_df, show_leaderboard(event_df))
+
+                # # 1. Fetch filtered data once
+                # event_df = pd.DataFrame(res.data)
+                
+                # # 2. Generate and display the leaderboard, then save the result
+                # ranking_data = show_leaderboard(event_df)
+                
+                st.divider()
+                
+                # 3. Pass both to the awards function
+                show_event_awards(event_df, ranking_data)
 
 
 
