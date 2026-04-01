@@ -548,7 +548,7 @@ else:
                 st.info("No matches logged yet to calculate rankings.")
                 return
 
-            df = DataFrame.DataFrame(res.data)
+            df = DataFrame(res.data)
 
             # 2. Process Player 1 and Player 2 into a single list of performances
             # We need to know: Name, Was it a Win?, What was the Score?
