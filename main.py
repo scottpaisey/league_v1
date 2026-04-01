@@ -635,14 +635,7 @@ else:
                 
                     st.plotly_chart(fig, use_container_width=True)
 
-                # Run both reports using the filtered event_df
-                show_leaderboard(event_df)
-                
-                st.divider()
-                
-                show_faction_win_rates(event_df)
-
-                                # --- REPORT 3: FACTION TURN OUT (PIE CHART) ---
+                # --- REPORT 3: FACTION TURN OUT (PIE CHART) ---
                 def show_faction_turnout(df):
                     st.subheader(f"🍕 {selected_event} Faction Turnout")
                     
@@ -673,10 +666,6 @@ else:
                     fig.update_traces(textinfo='percent+label')
                     
                     st.plotly_chart(fig, use_container_width=True)
-
-                # Run the new report
-                st.divider()
-                show_faction_turnout(event_df)
 
                 # --- REPORT 4: POINTS PER ALLEGIANCE (PIE CHART) ---
                 def show_allegiance_points_pie(df):
@@ -720,11 +709,6 @@ else:
                     fig.update_layout(showlegend=False)
                 
                     st.plotly_chart(fig, use_container_width=True)
-
-
-                # Run the new report
-                st.divider()
-                show_allegiance_points_pie(event_df)
 
                 def show_event_awards(df, leaderboard):
                     st.subheader("🎖️ The Sector Awards")
@@ -770,16 +754,25 @@ else:
                     martyr = leaderboard.sort_values(['Wins', 'Avg_Score'], ascending=[True, False])
                     c2.info(f"**The Eternal Martyr:** {martyr.iloc[0]['player']} (Highest Avg in Defeat)")
 
-                # show_event_awards(event_df, show_leaderboard(event_df))
-
                 # # 1. Fetch filtered data once
-                # event_df = pd.DataFrame(res.data)
-                
+                event_df = pd.DataFrame(res.data)
                 # # 2. Generate and display the leaderboard, then save the result
-                # ranking_data = show_leaderboard(event_df)
+                ranking_data = show_leaderboard(event_df)
+
+                # Run both reports using the filtered event_df
+                show_leaderboard(event_df)                
+                st.divider()
+                show_faction_win_rates(event_df)
+                
+                # Run the new report
+                st.divider()
+                show_faction_turnout(event_df)
+
+                # Run the new report
+                st.divider()
+                show_allegiance_points_pie(event_df)
                 
                 st.divider()
-                
                 # 3. Pass both to the awards function
                 show_event_awards(event_df, ranking_data)
 
