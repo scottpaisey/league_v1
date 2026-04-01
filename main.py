@@ -536,153 +536,108 @@ else:
     elif st.session_state.page == "Events":
         st.header("Events")
         st.divider()
-        # Data here
 
-        # 1. Fetch unique event names for the dropdown
+        # 1. FETCH UNIQUE EVENTS (Global Filter)
+        # We fetch this once at the top to power all reports below
         event_res = supabase.table("match_results").select("event_name").execute()
-        if event_res.data:
-            # Get unique names and add an "All Events" option
-            all_events = sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
-            event_options = ["All Events"] + all_events
-            selected_event = st.selectbox("Filter by Event", event_options)
-            # 2. Build the query based on selection
-            query = supabase.table("match_results").select("*")
-            if selected_event != "All Events":
-                query = query.eq("event_name", selected_event)
-            res = query.execute()
+        
+        if not event_res.data:
+            st.info("No event data found.")
         else:
-            res = None
+            # Create unique list without "All Events"
+            event_options = sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
+            
+            # The single dropdown for the whole page
+            selected_event = st.selectbox("Select Event to View Reports", event_options)
 
-        def show_leaderboard():
-            st.header("🏆 Player Rankings")
-
-            # 1. Fetch ALL data first to get the list of events
-            res = supabase.table("match_results").select("*").execute()
-
+            # 2. FETCH DATA ONCE
+            # Fetching the data here once saves database calls for both functions
+            res = supabase.table("match_results").select("*").eq("event_name", selected_event).execute()
+            
             if not res.data:
-                st.info("No matches logged yet to calculate rankings.")
-                return
-
-            all_data_df = pd.DataFrame(res.data)
-
-            # --- NEW: Selection Box for Filtering ---
-            # Get unique event names and handle potential None values
-            unique_events = sorted(list(set([row for row in all_data_df['event_name'] if row])))
-            event_options = ["All Events"] + unique_events
-            selected_event = st.selectbox("Filter Rankings by Event", event_options, key="leaderboard_event_filter")
-
-            # Apply the filter to our working dataframe
-            if selected_event != "All Events":
-                df = all_data_df[all_data_df['event_name'] == selected_event].copy()
+                st.warning(f"No matches logged for {selected_event} yet.")
             else:
-                df = all_data_df.copy()
+                # Convert to DataFrame once for both reports
+                event_df = pd.DataFrame(res.data)
 
-            if df.empty:
-                st.warning(f"No matches found for {selected_event}")
-                return
+                # --- REPORT 1: LEADERBOARD ---
+                def show_leaderboard(df):
+                    st.subheader(f"🏆 {selected_event} Rankings")
 
-            # 2. Process Player 1 and Player 2 into a single list of performances
-            p1_data = df[['display_p1_name', 'p1_score_total', 'display_p2_name']].copy()
-            p1_data.columns = ['player', 'score', 'opponent']
-            p1_data['is_win'] = df['p1_score_total'] > df['p2_score_total']
+                    # Process Player 1 and Player 2
+                    p1_data = df[['display_p1_name', 'p1_score_total', 'display_p2_name']].copy()
+                    p1_data.columns = ['player', 'score', 'opponent']
+                    p1_data['is_win'] = df['p1_score_total'] > df['p2_score_total']
 
-            p2_data = df[['display_p2_name', 'p2_score_total', 'display_p1_name']].copy()
-            p2_data.columns = ['player', 'score', 'opponent']
-            p2_data['is_win'] = df['p2_score_total'] > df['p1_score_total']
+                    p2_data = df[['display_p2_name', 'p2_score_total', 'display_p1_name']].copy()
+                    p2_data.columns = ['player', 'score', 'opponent']
+                    p2_data['is_win'] = df['p2_score_total'] > df['p1_score_total']
 
-            # Combine them
-            combined = pd.concat([p1_data, p2_data])
+                    combined = pd.concat([p1_data, p2_data])
 
-            # 3. Aggregate by Player
-            leaderboard = combined.groupby('player').agg(
-                Played=('player', 'count'),
-                Wins=('is_win', 'sum'),
-                Total_Points=('score', 'sum')
-            ).reset_index()
+                    leaderboard = combined.groupby('player').agg(
+                        Played=('player', 'count'),
+                        Wins=('is_win', 'sum'),
+                        Total_Points=('score', 'sum')
+                    ).reset_index()
 
-            # 4. Calculate Rank (Sort by Wins DESC, then Total_Points DESC)
-            leaderboard = leaderboard.sort_values(by=['Wins', 'Total_Points'], ascending=False)
+                    leaderboard = leaderboard.sort_values(by=['Wins', 'Total_Points'], ascending=False)
+                    leaderboard.insert(0, 'Rank', range(1, len(leaderboard) + 1))
 
-            # Add a visual Rank column
-            leaderboard.insert(0, 'Rank', range(1, len(leaderboard) + 1))
+                    st.dataframe(
+                        leaderboard,
+                        column_config={
+                            "Rank": st.column_config.NumberColumn("Rank", format="#%d"),
+                            "player": "Player Name",
+                            "Played": "Games",
+                            "Wins": "Wins ✅",
+                            "Total_Points": st.column_config.NumberColumn("Total Points", format="%d pts"),
+                        },
+                        hide_index=True,
+                        use_container_width=True
+                    )
 
-            # 5. Display with Streamlit Dataframe
-            st.dataframe(
-                leaderboard,
-                column_config={
-                    "Rank": st.column_config.NumberColumn("Rank", format="#%d"),
-                    "player": "Player Name",
-                    "Played": "Games",
-                    "Wins": "Wins ✅",
-                    "Total_Points": st.column_config.NumberColumn("Total Points", format="%d pts"),
-                },
-                hide_index=True,
-                use_container_width=True
-            )
+                # --- REPORT 2: FACTION WIN RATES ---
+                def show_faction_win_rates(df):
+                    st.subheader(f"📊 {selected_event} Faction Meta")
+                
+                    p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
+                    p1_data.columns = ['faction', 'score', 'opp_score']
+                    
+                    p2_data = df[['p2_faction', 'p2_score_total', 'p1_score_total']].copy()
+                    p2_data.columns = ['faction', 'score', 'opp_score']
+                    
+                    combined = pd.concat([p1_data, p2_data])
+                    combined['is_win'] = combined['score'] > combined['opp_score']
+                    
+                    faction_stats = combined.groupby('faction').agg(
+                        Total_Games=('faction', 'count'),
+                        Wins=('is_win', 'sum')
+                    ).reset_index()
+                
+                    faction_stats['Win_Rate'] = (faction_stats['Wins'] / faction_stats['Total_Games'] * 100).round(1)
+                    faction_stats = faction_stats.sort_values(by='Win_Rate', ascending=False)
+                
+                    fig = px.bar(
+                        faction_stats,
+                        x='faction',
+                        y='Win_Rate',
+                        text='Win_Rate',
+                        labels={'Win_Rate': 'Win Rate (%)', 'faction': 'Faction'},
+                        color='Win_Rate',
+                        color_continuous_scale='RdYlGn',
+                        height=500
+                    )
+                    fig.update_traces(texttemplate='%{text}%', textposition='outside')
+                    fig.update_layout(yaxis_range=[0, 110])
+                
+                    st.plotly_chart(fig, use_container_width=True)
 
-        # Run the function
-        show_leaderboard()
-        
-        def show_faction_win_rates():
-            st.subheader("📊 Faction Win Rates")
-        
-            # --- STEP 1: DROPDOWN FILTER ---
-            event_res = supabase.table("match_results").select("event_name").execute()
-            event_options = ["All Events"]
-            if event_res.data:
-                event_options += sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
-            
-            selected_event = st.selectbox("Select Event", event_options)
-        
-            # --- STEP 2: FETCH FILTERED DATA ---
-            query = supabase.table("match_results").select("*")
-            if selected_event != "All Events":
-                query = query.eq("event_name", selected_event)
-            
-            res = query.execute()
-            
-            if not res or not res.data:
-                st.warning(f"No match data found for {selected_event}.")
-                return
-        
-            df = pd.DataFrame(res.data)
-        
-            # --- STEP 3: DATA PROCESSING ---
-            p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
-            p1_data.columns = ['faction', 'score', 'opp_score']
-            
-            p2_data = df[['p2_faction', 'p2_score_total', 'p1_score_total']].copy()
-            p2_data.columns = ['faction', 'score', 'opp_score']
-            
-            combined = pd.concat([p1_data, p2_data])
-            combined['is_win'] = combined['score'] > combined['opp_score']
-            
-            faction_stats = combined.groupby('faction').agg(
-                Total_Games=('faction', 'count'),
-                Wins=('is_win', 'sum')
-            ).reset_index()
-        
-            faction_stats['Win_Rate'] = (faction_stats['Wins'] / faction_stats['Total_Games'] * 100).round(1)
-            faction_stats = faction_stats.sort_values(by='Win_Rate', ascending=False)
-        
-            # --- STEP 4: PLOT CHART ---
-            fig = px.bar(
-                faction_stats,
-                x='faction',
-                y='Win_Rate',
-                text='Win_Rate',
-                title=f"Win Rates for {selected_event}",
-                labels={'Win_Rate': 'Win Rate (%)', 'faction': 'Faction'},
-                color='Win_Rate',
-                color_continuous_scale='RdYlGn',
-                height=500
-            )
-            fig.update_traces(texttemplate='%{text}%', textposition='outside')
-            fig.update_layout(yaxis_range=[0, 110])
-        
-            st.plotly_chart(fig, use_container_width=True)
+                # Run both reports using the filtered event_df
+                show_leaderboard(event_df)
+                st.divider()
+                show_faction_win_rates(event_df)
 
-        show_faction_win_rates()
 
     elif st.session_state.page == "Graphs":
         st.header("Graphs")
