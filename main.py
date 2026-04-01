@@ -548,7 +548,7 @@ else:
                 st.info("No matches logged yet to calculate rankings.")
                 return
 
-            df = DataFrame(res.data)
+            df = pd.DataFrame(res.data)
 
             # 2. Process Player 1 and Player 2 into a single list of performances
             # We need to know: Name, Was it a Win?, What was the Score?
@@ -563,7 +563,7 @@ else:
             p2_data['is_win'] = df['p2_score_total'] > df['p1_score_total']
 
             # Combine them
-            combined = DataFrame.concat([p1_data, p2_data])
+            combined = pd.concat([p1_data, p2_data])
 
             # 3. Aggregate by Player
             leaderboard = combined.groupby('player').agg(
