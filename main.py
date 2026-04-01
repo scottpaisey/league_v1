@@ -539,16 +539,16 @@ else:
         # Data here
 
         # 1. Fetch unique event names for the dropdown
-        event_res = supabase.table("match_results").select("league_name").execute()
+        event_res = supabase.table("match_results").select("event_name").execute()
         if event_res.data:
             # Get unique names and add an "All Events" option
-            all_events = sorted(list(set([row['league_name'] for row in event_res.data if row['league_name']])))
+            all_events = sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
             event_options = ["All Events"] + all_events
             selected_event = st.selectbox("Filter by Event", event_options)
             # 2. Build the query based on selection
             query = supabase.table("match_results").select("*")
             if selected_event != "All Events":
-                query = query.eq("league_name", selected_event)
+                query = query.eq("event_name", selected_event)
             res = query.execute()
         else:
             res = None
@@ -567,13 +567,13 @@ else:
 
             # --- NEW: Selection Box for Filtering ---
             # Get unique event names and handle potential None values
-            unique_events = sorted(list(set([row for row in all_data_df['league_name'] if row])))
+            unique_events = sorted(list(set([row for row in all_data_df['event_name'] if row])))
             event_options = ["All Events"] + unique_events
             selected_event = st.selectbox("Filter Rankings by Event", event_options, key="leaderboard_event_filter")
 
             # Apply the filter to our working dataframe
             if selected_event != "All Events":
-                df = all_data_df[all_data_df['league_name'] == selected_event].copy()
+                df = all_data_df[all_data_df['event_name'] == selected_event].copy()
             else:
                 df = all_data_df.copy()
 
@@ -627,17 +627,17 @@ else:
             st.subheader("📊 Faction Win Rates")
         
             # --- STEP 1: DROPDOWN FILTER ---
-            event_res = supabase.table("match_results").select("league_name").execute()
+            event_res = supabase.table("match_results").select("event_name").execute()
             event_options = ["All Events"]
             if event_res.data:
-                event_options += sorted(list(set([row['league_name'] for row in event_res.data if row['league_name']])))
+                event_options += sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
             
-            selected_event = st.selectbox("Select Event / League", event_options)
+            selected_event = st.selectbox("Select Event", event_options)
         
             # --- STEP 2: FETCH FILTERED DATA ---
             query = supabase.table("match_results").select("*")
             if selected_event != "All Events":
-                query = query.eq("league_name", selected_event)
+                query = query.eq("event_name", selected_event)
             
             res = query.execute()
             
@@ -682,8 +682,7 @@ else:
         
             st.plotly_chart(fig, use_container_width=True)
 
-
-    
+        show_faction_win_rates()
 
     elif st.session_state.page == "Graphs":
         st.header("Graphs")
