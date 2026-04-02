@@ -825,7 +825,7 @@ else:
                     st.divider()
                     show_event_awards(awards_df, ranking_data)
                     st.divider()
-                    show_round_averages_chart(awards_event_df)
+                    show_round_averages_chart(awards_df)
                     st.divider()
                     show_faction_win_rates(event_df)
                     st.divider()
