@@ -554,8 +554,8 @@ else:
         
             # 3. FILTER INDIVIDUALLY: Only keep players who are 'Checked In'
             # If P1 is 'Checked In' but P2 is 'Dropped', P1 stays in the list!
-            combined = combined[combined['status'] == 'Checked In']
-        
+            # combined = combined[combined['status'] == 'Checked In']
+            combined = combined[combined['status'] != 'Dropped']        
             # 4. Calculate Wins
             combined['is_win'] = combined['score'] > combined['opp_score']
             
