@@ -642,36 +642,49 @@ else:
             fig.update_layout(showlegend=False)
             st.plotly_chart(fig, use_container_width=True)
 
-        # --- STEP 2: FETCH & FILTER DATA ---
-        # Get unique events for the dropdown
-        event_res = supabase.table("match_results").select("event_name").execute()
-        if event_res.data:
-            event_options = sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
-            selected_event = st.selectbox("Select Event to View Reports", event_options)
-
-            # Fetch filtered data
+            # --- STEP 2: FETCH & FILTER DATA ---
             res = supabase.table("match_results").select("*").eq("event_name", selected_event).execute()
+            
             if res.data:
                 raw_df = pd.DataFrame(res.data)
                 
-                # Apply Global Pre-Filters
-                event_df = raw_df[
-                    (raw_df['status'] != 'Not Played') & 
+                # A. PRE-FILTER: Always exclude 'Dropped' players from everything
+                # (Matches only count if both players were Checked In)
+                active_df = raw_df[
                     (raw_df['p1_status'] == 'Checked In') & 
                     (raw_df['p2_status'] == 'Checked In')
                 ].copy()
-
-                if not event_df.empty:
+    
+                # B. RANKING DATA: Includes 'Not Played' for total points/games
+                ranking_event_df = active_df.copy()
+    
+                # C. AWARDS & CHART DATA: Excludes 'Not Played' to prevent skewed averages/margins
+                awards_event_df = active_df[active_df['status'] != 'Not Played'].copy()
+    
+                if ranking_event_df.empty:
+                    st.warning("No valid match data found.")
+                else:
                     # --- STEP 3: RUN REPORTS IN ORDER ---
-                    ranking_data = show_leaderboard(event_df)
+                    
+                    # 1. Leaderboard: Use the 'Ranking' DF (Includes Not Played 100pts)
+                    ranking_data = show_leaderboard(ranking_event_df)
+                    
                     st.divider()
-                    show_event_awards(event_df, ranking_data)
+                    
+                    # 2. Awards: Use the 'Awards' DF (Excludes Not Played/Byes)
+                    show_event_awards(awards_event_df, ranking_data)
+    
                     st.divider()
-                    show_faction_win_rates(event_df)
+                    
+                    # 3. Charts: Use the 'Awards' DF (Excludes Not Played for clean Win Rates)
+                    show_faction_win_rates(awards_event_df)
+                    
                     st.divider()
-                    show_faction_turnout(event_df)
+                    show_faction_turnout(awards_event_df)
+    
                     st.divider()
-                    show_allegiance_points_pie(event_df)
+                    show_allegiance_points_pie(awards_event_df)
+
                 else:
                     st.warning("No valid match data found after filtering out Dropped/Unplayed results.")
         else:
