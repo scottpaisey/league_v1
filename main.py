@@ -687,13 +687,22 @@ else:
                 
                 # Apply Global Pre-Filters
                 event_df = raw_df[
-                    (raw_df['status'] != 'Not Played') & 
+                    (raw_df['status'] != 'Not Logged') & 
                     (raw_df['p1_status'] == 'Checked In') & 
                     (raw_df['p2_status'] == 'Checked In')
                 ].copy()
-    
+
+                        # Apply Global Pre-Filters
+                awards_df = raw_df[
+                    (raw_df['status'] == 'Logged') & 
+                    (raw_df['p1_status'] == 'Checked In') & 
+                    (raw_df['p2_status'] == 'Checked In')
+                ].copy()
+
+        
         show_leaderboard(raw_df)
         show_leaderboard(event_df)
+        show_leaderboard(awards_df)
     
 
     elif st.session_state.page == "Graphs":
