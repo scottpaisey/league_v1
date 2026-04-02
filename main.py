@@ -571,6 +571,11 @@ else:
             leaderboard.insert(0, 'Rank', range(1, len(leaderboard) + 1))
         
             st.dataframe(leaderboard, hide_index=True, use_container_width=True)
+
+                        # Temporary debug inside show_leaderboard
+            st.write("Debug: All filtered games for 'Kerith B':", 
+                     combined[combined['player'] == "Kerith B"])
+
             return leaderboard
 
 
