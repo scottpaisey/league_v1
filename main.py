@@ -661,60 +661,7 @@ else:
             if not spearhead.empty:
                 n3.info(f"**The Broken Spearhead**\n\n**{spearhead.iloc[0]['player']}** (Went first {spearhead.iloc[0]['Starts']} times)")
 
-        
-            # # --- NARRATIVE AWARDS (The Intelligence Reports) ---
-            # st.write("### 🕵️ Intelligence Reports")
-            # n1, n2 = st.columns(2)
-            # n3, n4 = st.columns(2)
-        
-            # # 1. Tzeentch’s Plaything
-            # plaything = leaderboard[leaderboard['Wins'] < 2].sort_values('Total_Points', ascending=False)
-            # if not plaything.empty:
-            #     p_row = plaything.iloc[0]
-            #     n1.info(
-            #         f"**Tzeentch’s Plaything**\n\n"
-            #         f"**{p_row['player']}** accumulated a massive **{p_row['Total_Points']}** total points, "
-            #         f"despite only securing **{p_row['Wins']}** wins. The Changer of Ways is pleased with this complexity."
-            #     )
-        
-            # # 2. The Eternal Martyr
-            # martyr = leaderboard.sort_values(['Wins', 'Avg_Score'], ascending=[True, False])
-            # if not martyr.empty:
-            #     m_row = martyr.iloc[0]
-            #     n2.info(
-            #         f"**The Eternal Martyr**\n\n"
-            #         f"**{m_row['player']}** fought bravely to the bitter end. Despite the losses, "
-            #         f"they maintained a high average of **{m_row['Avg_Score']} pts** per game. Their sacrifice is noted."
-            #     )
-        
-            # # 3. The Broken Spearhead
-            # # We calculate 'Went First' counts from the raw match data
-            # wf_counts = df['went_first'].value_counts().reset_index()
-            # wf_counts.columns = ['player', 'Starts']
-            # spearhead_data = pd.merge(wf_counts, leaderboard, on='player')
-            # spearhead_data['Win_Rate'] = spearhead_data['Wins'] / spearhead_data['Played']
-            # # Filter for people who went first at least twice, then sort by win rate ascending
-            # spearhead = spearhead_data[spearhead_data['Starts'] >= 2].sort_values('Win_Rate', ascending=True)
-            # if not spearhead.empty:
-            #     s_row = spearhead.iloc[0]
-            #     n3.warning(
-            #         f"**The Broken Spearhead**\n\n"
-            #         f"**{s_row['player']}** seized the initiative in **{s_row['Starts']}** separate matches, "
-            #         f"yet found no victory in the charge. The best-laid plans often crumble upon contact."
-            #     )
-        
-            # # 4. The Penitent’s Burden
-            # if not leaderboard.empty:
-            #     p_row = leaderboard.iloc[-1]
-            #     n4.error(
-            #         f"**The Penitent’s Burden**\n\n"
-            #         f"**{p_row['player']}** finishes at the bottom of the standings. "
-            #         f"Repentance is found through trial; the next sector awaits your redemption."
-            #     )
-
-
-
-         def show_faction_win_rates(df):
+        def show_faction_win_rates(df):
             st.subheader(f"📊 {selected_event} Faction Meta")
             p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
             p1_data.columns = ['faction', 'score', 'opp_score']
@@ -725,19 +672,9 @@ else:
             stats = combined.groupby('faction').agg(Total=('faction', 'count'), Wins=('is_win', 'sum')).reset_index()
             stats['Win_Rate'] = (stats['Wins'] / stats['Total'] * 100).round(1)
             stats = stats.sort_values(by='Win_Rate', ascending=False)
-            
             fig = px.bar(stats, x='faction', y='Win_Rate', text='Win_Rate', color='Win_Rate', color_continuous_scale='RdYlGn', height=400)
-            
-            # --- THE TWEAK IS HERE ---
-            fig.update_layout(
-                yaxis_range=[0, 110],
-                coloraxis_showscale=False  # This hides the color bar on the right
-            )
-            # --------------------------
-            
-            fig.update_traces(texttemplate='%{text}%', textposition='outside')
+            fig.update_layout(yaxis_range=[0, 110])
             st.plotly_chart(fig, use_container_width=True)
-
 
         def show_faction_turnout(df):
             st.subheader(f"🍕 {selected_event} Faction Turnout")
