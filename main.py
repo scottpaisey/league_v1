@@ -621,6 +621,31 @@ else:
         
             st.divider()
         
+            # # --- NARRATIVE AWARDS ---
+            # st.write("### 🕵️ Intelligence Reports")
+            # n1, n2, n3 = st.columns(3)
+        
+            # # 1. Tzeentch’s Plaything: High VP, Low Wins
+            # plaything = leaderboard[leaderboard['Wins'] < 2].sort_values('Total_Points', ascending=False)
+            # if not plaything.empty:
+            #     n1.info(f"**Tzeentch’s Plaything**\n\n**{plaything.iloc[0]['player']}** ({plaything.iloc[0]['Total_Points']} VP)")
+        
+            # # 2. The Eternal Martyr: Most losses, High average
+            # martyr = leaderboard.sort_values(['Wins', 'Avg_Score'], ascending=[True, False])
+            # n2.info(f"**The Eternal Martyr**\n\n**{martyr.iloc[0]['player']}** ({martyr.iloc[0]['Avg_Score']} Avg)")
+        
+            # # 3. The Broken Spearhead: Most "Went First" with lowest win rate
+            # # We calculate 'Went First' counts from the raw match data
+            # wf_counts = df['went_first'].value_counts().reset_index()
+            # wf_counts.columns = ['player', 'Starts']
+            # # Join to leaderboard to check win rates
+            # spearhead_data = pd.merge(wf_counts, leaderboard, on='player')
+            # spearhead_data['Win_Rate'] = spearhead_data['Wins'] / spearhead_data['Played']
+            # # Filter for people who went first at least twice, then sort by win rate ascending
+            # spearhead = spearhead_data[spearhead_data['Starts'] >= 2].sort_values('Win_Rate', ascending=True)
+            # if not spearhead.empty:
+            #     n3.info(f"**The Broken Spearhead**\n\n**{spearhead.iloc[0]['player']}** (Went first {spearhead.iloc[0]['Starts']} times)")
+
             # --- NARRATIVE AWARDS ---
             st.write("### 🕵️ Intelligence Reports")
             n1, n2, n3 = st.columns(3)
@@ -646,6 +671,8 @@ else:
             if not spearhead.empty:
                 n3.info(f"**The Broken Spearhead**\n\n**{spearhead.iloc[0]['player']}** (Went first {spearhead.iloc[0]['Starts']} times)")
 
+
+        
         # def show_faction_win_rates(df):
         #     st.subheader(f"📊 {selected_event} Faction Meta")
         #     p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
