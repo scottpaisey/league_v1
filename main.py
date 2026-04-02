@@ -503,19 +503,6 @@ else:
                         # "club_id": ,
                     }
 
-                # --- DEBUG MONITOR ---
-                with st.sidebar.expander("🔍 Variable Monitor", expanded=True):
-                    st.write(f"**p2_id:** `{p2_id}`")
-                    st.write(f"**p2_name:** `{p2_name}`")
-                    st.write(f"**Type of p2_id:** `{type(p2_id).__name__}`")
-                    st.write("### 🚨 Database Submission Debug")
-                    for key, value in match_details.items():
-                        if value == "krystal":
-                            st.error(
-                                f"FOUND THE ERROR: The column **'{key}'** is trying to send 'krystal' but it needs to be NULL (None).")
-                    st.json(match_details)  # This shows you the whole dictionary
-                # -----------------------------
-
                 supabase.table("matches").insert(match_details).execute()
 
                 st.success("Game posted to Supabase!")
@@ -568,7 +555,7 @@ else:
             # ---------------------
         
             # 3. FILTER INDIVIDUALLY: Only keep players who are 'Checked In'
-            combined = combined[combined['status'] == 'Checked In']
+            # combined = combined[combined['status'] == 'Checked In']
         
             if combined.empty:
                 st.warning("No games found for checked-in players.")
