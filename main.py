@@ -714,7 +714,7 @@ else:
 
 
 
-        def show_faction_win_rates(df):
+         def show_faction_win_rates(df):
             st.subheader(f"📊 {selected_event} Faction Meta")
             p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
             p1_data.columns = ['faction', 'score', 'opp_score']
@@ -725,9 +725,19 @@ else:
             stats = combined.groupby('faction').agg(Total=('faction', 'count'), Wins=('is_win', 'sum')).reset_index()
             stats['Win_Rate'] = (stats['Wins'] / stats['Total'] * 100).round(1)
             stats = stats.sort_values(by='Win_Rate', ascending=False)
+            
             fig = px.bar(stats, x='faction', y='Win_Rate', text='Win_Rate', color='Win_Rate', color_continuous_scale='RdYlGn', height=400)
-            fig.update_layout(yaxis_range=[0, 110])
+            
+            # --- THE TWEAK IS HERE ---
+            fig.update_layout(
+                yaxis_range=[0, 110],
+                coloraxis_showscale=False  # This hides the color bar on the right
+            )
+            # --------------------------
+            
+            fig.update_traces(texttemplate='%{text}%', textposition='outside')
             st.plotly_chart(fig, use_container_width=True)
+
 
         def show_faction_turnout(df):
             st.subheader(f"🍕 {selected_event} Faction Turnout")
