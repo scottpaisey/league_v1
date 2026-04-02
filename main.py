@@ -537,248 +537,145 @@ else:
         st.header("Events")
         st.divider()
 
-        # 1. FETCH UNIQUE EVENTS (Global Filter)
-        # We fetch this once at the top to power all reports below
-        event_res = supabase.table("match_results").select("event_name").execute()
-        
-        if not event_res.data:
-            st.info("No event data found.")
-        else:
-            # Create unique list without "All Events"
-            event_options = sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
+        # --- STEP 1: DEFINE ALL REPORT FUNCTIONS ---
+
+        def show_leaderboard(df):
+            st.subheader(f"🏆 {selected_event} Rankings")
+            p1_data = df[['display_p1_name', 'p1_score_total', 'display_p2_name']].copy()
+            p1_data.columns = ['player', 'score', 'opponent']
+            p1_data['is_win'] = df['p1_score_total'] > df['p2_score_total']
+
+            p2_data = df[['display_p2_name', 'p2_score_total', 'display_p1_name']].copy()
+            p2_data.columns = ['player', 'score', 'opponent']
+            p2_data['is_win'] = df['p2_score_total'] > df['p1_score_total']
+
+            combined = pd.concat([p1_data, p2_data])
+            leaderboard = combined.groupby('player').agg(
+                Played=('player', 'count'),
+                Wins=('is_win', 'sum'),
+                Total_Points=('score', 'sum')
+            ).reset_index()
+
+            leaderboard = leaderboard.sort_values(by=['Wins', 'Total_Points'], ascending=False)
+            leaderboard.insert(0, 'Rank', range(1, len(leaderboard) + 1))
+
+            st.dataframe(
+                leaderboard,
+                column_config={
+                    "Rank": st.column_config.NumberColumn("Rank", format="#%d"),
+                    "player": "Player Name",
+                    "Played": "Games",
+                    "Wins": "Wins ✅",
+                    "Total_Points": st.column_config.NumberColumn("Total Points", format="%d pts"),
+                },
+                hide_index=True,
+                use_container_width=True
+            )
+            return leaderboard
+
+        def show_event_awards(df, leaderboard):
+            st.subheader("🎖️ The Sector Awards")
             
-            # The single dropdown for the whole page
+            # Helper to safely calculate averages
+            leaderboard['Avg_Score'] = (leaderboard['Total_Points'] / leaderboard['Played']).round(1)
+            
+            # --- 1. Warmaster & Penitent ---
+            warmaster = leaderboard.iloc[0]['player']
+            penitent = leaderboard.iloc[-1]['player']
+            
+            # --- 2. Master of the Tactica ---
+            top_tactician = leaderboard.sort_values('Avg_Score', ascending=False).iloc[0]
+            
+            # --- 3. Exterminatus Protocol (Max Margin) ---
+            max_mar_row = df.loc[df[['p1_score_mar', 'p2_score_mar']].max(axis=1).idxmax()]
+            if max_mar_row['p1_score_mar'] > max_mar_row['p2_score_mar']:
+                ex_player, max_mar = max_mar_row['display_p1_name'], max_mar_row['p1_score_mar']
+            else:
+                ex_player, max_mar = max_mar_row['display_p2_name'], max_mar_row['p2_score_mar']
+        
+            col1, col2, col3 = st.columns(3)
+            col1.metric("⚔️ Warmaster", warmaster, "1st Place")
+            col2.metric("📜 Master of Tactica", top_tactician['player'], f"{top_tactician['Avg_Score']} Avg")
+            col3.metric("💥 Exterminatus", ex_player, f"+{max_mar} Margin")
+            
+            st.divider()
+            st.write("### 🕵️ Intelligence Reports")
+            c1, c2 = st.columns(2)
+            plaything = leaderboard[leaderboard['Wins'] < 2].sort_values('Total_Points', ascending=False)
+            if not plaything.empty:
+                c1.info(f"**Tzeentch’s Plaything:** {plaything.iloc[0]['player']} (High VP, Low Wins)")
+            martyr = leaderboard.sort_values(['Wins', 'Avg_Score'], ascending=[True, False])
+            c2.info(f"**The Eternal Martyr:** {martyr.iloc[0]['player']} (Highest Avg in Defeat)")
+
+        def show_faction_win_rates(df):
+            st.subheader(f"📊 {selected_event} Faction Meta")
+            p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
+            p1_data.columns = ['faction', 'score', 'opp_score']
+            p2_data = df[['p2_faction', 'p2_score_total', 'p1_score_total']].copy()
+            p2_data.columns = ['faction', 'score', 'opp_score']
+            combined = pd.concat([p1_data, p2_data])
+            combined['is_win'] = combined['score'] > combined['opp_score']
+            stats = combined.groupby('faction').agg(Total=('faction', 'count'), Wins=('is_win', 'sum')).reset_index()
+            stats['Win_Rate'] = (stats['Wins'] / stats['Total'] * 100).round(1)
+            stats = stats.sort_values(by='Win_Rate', ascending=False)
+            fig = px.bar(stats, x='faction', y='Win_Rate', text='Win_Rate', color='Win_Rate', color_continuous_scale='RdYlGn', height=400)
+            fig.update_layout(yaxis_range=[0, 110])
+            st.plotly_chart(fig, use_container_width=True)
+
+        def show_faction_turnout(df):
+            st.subheader(f"🍕 {selected_event} Faction Turnout")
+            combined = pd.concat([df[['p1_faction']].rename(columns={'p1_faction':'f'}), df[['p2_faction']].rename(columns={'p2_faction':'f'})])
+            stats = combined['f'].value_counts().reset_index()
+            stats.columns = ['Faction', 'Count']
+            fig = px.pie(stats, values='Count', names='Faction', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig, use_container_width=True)
+
+        def show_allegiance_points_pie(df):
+            st.subheader(f"🍰 {selected_event} Points per Allegiance")
+            p1 = df[['p1_allegiance', 'p1_score_total']].rename(columns={'p1_allegiance':'a', 'p1_score_total':'s'})
+            p2 = df[['p2_allegiance', 'p2_score_total']].rename(columns={'p2_allegiance':'a', 'p2_score_total':'s'})
+            combined = pd.concat([p1, p2])
+            agg = combined.groupby('a')['s'].sum().reset_index().sort_values('s', ascending=False)
+            agg['label'] = agg['a'] + " (" + agg['s'].astype(str) + " pts)"
+            fig = px.pie(agg, values='s', names='label', hole=0.5, title=f"Total Event Points: {agg['s'].sum():,}")
+            fig.update_traces(textinfo='percent+label')
+            fig.update_layout(showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+
+        # --- STEP 2: FETCH & FILTER DATA ---
+        # Get unique events for the dropdown
+        event_res = supabase.table("match_results").select("event_name").execute()
+        if event_res.data:
+            event_options = sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
             selected_event = st.selectbox("Select Event to View Reports", event_options)
 
-            # 2. FETCH DATA ONCE
-            # Fetching the data here once saves database calls for both functions
+            # Fetch filtered data
             res = supabase.table("match_results").select("*").eq("event_name", selected_event).execute()
-            
-            if not res.data:
-                st.warning(f"No matches logged for {selected_event} yet.")
-            else:
-                # Convert to DataFrame once for both reports
-                event_df = pd.DataFrame(res.data)
-
-                # --- REPORT 1: LEADERBOARD ---
-                def show_leaderboard(df):
-                    st.subheader(f"🏆 {selected_event} Rankings")
-
-                    # Process Player 1 and Player 2
-                    p1_data = df[['display_p1_name', 'p1_score_total', 'display_p2_name']].copy()
-                    p1_data.columns = ['player', 'score', 'opponent']
-                    p1_data['is_win'] = df['p1_score_total'] > df['p2_score_total']
-
-                    p2_data = df[['display_p2_name', 'p2_score_total', 'display_p1_name']].copy()
-                    p2_data.columns = ['player', 'score', 'opponent']
-                    p2_data['is_win'] = df['p2_score_total'] > df['p1_score_total']
-
-                    combined = pd.concat([p1_data, p2_data])
-
-                    leaderboard = combined.groupby('player').agg(
-                        Played=('player', 'count'),
-                        Wins=('is_win', 'sum'),
-                        Total_Points=('score', 'sum')
-                    ).reset_index()
-
-                    leaderboard = leaderboard.sort_values(by=['Wins', 'Total_Points'], ascending=False)
-                    leaderboard.insert(0, 'Rank', range(1, len(leaderboard) + 1))
-
-                    st.dataframe(
-                        leaderboard,
-                        column_config={
-                            "Rank": st.column_config.NumberColumn("Rank", format="#%d"),
-                            "player": "Player Name",
-                            "Played": "Games",
-                            "Wins": "Wins ✅",
-                            "Total_Points": st.column_config.NumberColumn("Total Points", format="%d pts"),
-                        },
-                        hide_index=True,
-                        use_container_width=True
-                    )
-
-                    return leaderboard
-
-                # --- REPORT 2: FACTION WIN RATES ---
-                def show_faction_win_rates(df):
-                    st.subheader(f"📊 {selected_event} Faction Meta")
+            if res.data:
+                raw_df = pd.DataFrame(res.data)
                 
-                    p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
-                    p1_data.columns = ['faction', 'score', 'opp_score']
-                    
-                    p2_data = df[['p2_faction', 'p2_score_total', 'p1_score_total']].copy()
-                    p2_data.columns = ['faction', 'score', 'opp_score']
-                    
-                    combined = pd.concat([p1_data, p2_data])
-                    combined['is_win'] = combined['score'] > combined['opp_score']
-                    
-                    faction_stats = combined.groupby('faction').agg(
-                        Total_Games=('faction', 'count'),
-                        Wins=('is_win', 'sum')
-                    ).reset_index()
-                
-                    faction_stats['Win_Rate'] = (faction_stats['Wins'] / faction_stats['Total_Games'] * 100).round(1)
-                    faction_stats = faction_stats.sort_values(by='Win_Rate', ascending=False)
-                
-                    fig = px.bar(
-                        faction_stats,
-                        x='faction',
-                        y='Win_Rate',
-                        text='Win_Rate',
-                        labels={'Win_Rate': 'Win Rate (%)', 'faction': 'Faction'},
-                        color='Win_Rate',
-                        color_continuous_scale='RdYlGn',
-                        height=500
-                    )
-                    fig.update_traces(texttemplate='%{text}%', textposition='outside')
-                    fig.update_layout(yaxis_range=[0, 110])
-                
-                    st.plotly_chart(fig, use_container_width=True)
+                # Apply Global Pre-Filters
+                event_df = raw_df[
+                    (raw_df['status'] != 'Not Played') & 
+                    (raw_df['p1_status'] == 'Checked In') & 
+                    (raw_df['p2_status'] == 'Checked In')
+                ].copy()
 
-                # --- REPORT 3: FACTION TURN OUT (PIE CHART) ---
-                def show_faction_turnout(df):
-                    st.subheader(f"🍕 {selected_event} Faction Turnout")
-                    
-                    # Unpivot Player 1 and Player 2 factions
-                    p1_factions = df[['p1_faction']].copy()
-                    p1_factions.columns = ['faction']
-                    
-                    p2_factions = df[['p2_faction']].copy()
-                    p2_factions.columns = ['faction']
-                    
-                    combined = pd.concat([p1_factions, p2_factions])
-                    
-                    # Count occurrences of each faction
-                    turnout_stats = combined['faction'].value_counts().reset_index()
-                    turnout_stats.columns = ['Faction', 'Count']
-                    
-                    # Create Pie Chart
-                    fig = px.pie(
-                        turnout_stats, 
-                        values='Count', 
-                        names='Faction', 
-                        title=f"Faction Distribution for {selected_event}",
-                        hole=0.4, # Makes it a Donut Chart (optional)
-                        color_discrete_sequence=px.colors.qualitative.Pastel
-                    )
-                    
-                    # Update layout to show labels and percentages
-                    fig.update_traces(textinfo='percent+label')
-                    
-                    st.plotly_chart(fig, use_container_width=True)
-
-                # --- REPORT 4: POINTS PER ALLEGIANCE (PIE CHART) ---
-                def show_allegiance_points_pie(df):
-                    st.subheader(f"🍰 {selected_event} Points per Allegiance")
-                    
-                    # 1. Unpivot scores and allegiances
-                    p1_data = df[['p1_allegiance', 'p1_score_total']].copy()
-                    p1_data.columns = ['allegiance', 'score']
-                    
-                    p2_data = df[['p2_allegiance', 'p2_score_total']].copy()
-                    p2_data.columns = ['allegiance', 'score']
-                    
-                    combined = pd.concat([p1_data, p2_data])
-                    
-                    # 2. Aggregate and sort for better visual flow
-                    agg_data = combined.groupby('allegiance')['score'].sum().reset_index()
-                    agg_data = agg_data.sort_values(by='score', ascending=False)
-                    
-                    # 3. Create a custom label for each slice: "Allegiance (Total Pts)"
-                    agg_data['label'] = agg_data['allegiance'] + " (" + agg_data['score'].astype(str) + " pts)"
-                
-                    # 4. Create the Donut Chart
-                    fig = px.pie(
-                        agg_data,
-                        values='score',
-                        names='label', # Use our new custom label
-                        hole=0.5,      # Increased hole size for a more modern "Ring" look
-                        color_discrete_sequence=px.colors.qualitative.Bold,
-                        # This adds the total event points in the centre of the donut!
-                        title=f"Total Event Points: {agg_data['score'].sum():,}"
-                    )
-                    
-                    # 5. Styling: Show percentage + the custom label
-                    fig.update_traces(
-                        textinfo='percent+label',
-                        pull=[0.05] * len(agg_data), # Slightly "explodes" slices for a 3D effect
-                        marker=dict(line=dict(color='#000000', width=1)) # Adds thin border
-                    )
-                    
-                    # Position the legend at the bottom to save horizontal space
-                    fig.update_layout(showlegend=False)
-                
-                    st.plotly_chart(fig, use_container_width=True)
-
-                def show_event_awards(df, leaderboard):
-                    st.subheader("🎖️ The Sector Awards")
-                    
-                    # --- 1. Warmaster & Penitent (Standings) ---
-                    warmaster = leaderboard.iloc[0]['player']
-                    penitent = leaderboard.iloc[-1]['player']
-                    
-                    # --- 2. Master of the Tactica (Avg Score) ---
-                    # We calculate average from our leaderboard data
-                    leaderboard['Avg_Score'] = (leaderboard['Total_Points'] / leaderboard['Played']).round(1)
-                    top_tactician = leaderboard.sort_values('Avg_Score', ascending=False).iloc[0]
-                    
-                    # --- 3. Exterminatus Protocol (Max Margin) ---
-                    # We look at the raw match data for the biggest p1_score_mar or p2_score_mar
-                    max_mar_row = df.loc[df[['p1_score_mar', 'p2_score_mar']].max(axis=1).idxmax()]
-                    if max_mar_row['p1_score_mar'] > max_mar_row['p2_score_mar']:
-                        exterminatus_player = max_mar_row['display_p1_name']
-                        max_mar = max_mar_row['p1_score_mar']
-                    else:
-                        exterminatus_player = max_mar_row['display_p2_name']
-                        max_mar = max_mar_row['p2_score_mar']
-                
-                    # Display Top Row
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("⚔️ Warmaster", warmaster, "1st Place")
-                    col2.metric("📜 Master of Tactica", top_tactician['player'], f"{top_tactician['Avg_Score']} Avg")
-                    col3.metric("💥 Exterminatus", exterminatus_player, f"+{max_mar} Margin")
-                    
+                if not event_df.empty:
+                    # --- STEP 3: RUN REPORTS IN ORDER ---
+                    ranking_data = show_leaderboard(event_df)
                     st.divider()
-                
-                    # --- 4. Special Narrative Awards ---
-                    st.write("### 🕵️ Intelligence Reports")
-                    c1, c2 = st.columns(2)
-                
-                    # Tzeentch’s Plaything: High VP, Low Wins
-                    # Filter for people with < 2 wins but high total points
-                    plaything = leaderboard[leaderboard['Wins'] < 2].sort_values('Total_Points', ascending=False)
-                    if not plaything.empty:
-                        c1.info(f"**Tzeentch’s Plaything:** {plaything.iloc[0]['player']} (High VP, Low Wins)")
-                
-                    # The Eternal Martyr: Most losses, High average
-                    martyr = leaderboard.sort_values(['Wins', 'Avg_Score'], ascending=[True, False])
-                    c2.info(f"**The Eternal Martyr:** {martyr.iloc[0]['player']} (Highest Avg in Defeat)")
-
-                # # 1. Fetch filtered data once
-                event_df = pd.DataFrame(res.data)
-                # # 2. Generate and display the leaderboard, then save the result
-                ranking_data = show_leaderboard(event_df)
-
-                # Run both reports using the filtered event_df
-                show_leaderboard(event_df)                
-                st.divider()
-                show_faction_win_rates(event_df)
-                
-                # Run the new report
-                st.divider()
-                show_faction_turnout(event_df)
-
-                # Run the new report
-                st.divider()
-                show_allegiance_points_pie(event_df)
-                
-                st.divider()
-                # 3. Pass both to the awards function
-                show_event_awards(event_df, ranking_data)
-
-
-
-
+                    show_event_awards(event_df, ranking_data)
+                    st.divider()
+                    show_faction_win_rates(event_df)
+                    st.divider()
+                    show_faction_turnout(event_df)
+                    st.divider()
+                    show_allegiance_points_pie(event_df)
+                else:
+                    st.warning("No valid match data found after filtering out Dropped/Unplayed results.")
+        else:
+            st.info("No events found in the database.")
 
     elif st.session_state.page == "Graphs":
         st.header("Graphs")
