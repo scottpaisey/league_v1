@@ -597,13 +597,31 @@ else:
             col3.metric("💥 Exterminatus", ex_player, f"+{max_mar} Margin")
             
             st.divider()
+              # --- 4. Special Narrative Awards ---
             st.write("### 🕵️ Intelligence Reports")
             c1, c2 = st.columns(2)
+        
+            # Tzeentch’s Plaything: High VP, Low Wins
             plaything = leaderboard[leaderboard['Wins'] < 2].sort_values('Total_Points', ascending=False)
             if not plaything.empty:
-                c1.info(f"**Tzeentch’s Plaything:** {plaything.iloc[0]['player']} (High VP, Low Wins)")
+                p_row = plaything.iloc[0]
+                c1.info(
+                    f"**Tzeentch’s Plaything**\n\n"
+                    f"**{p_row['player']}** accumulated a massive **{p_row['Total_Points']}** total points, "
+                    f"despite only securing **{p_row['Wins']}** wins. The Changer of Ways is pleased."
+                )
+        
+            # The Eternal Martyr: Most losses, High average
+            # We sort by Wins ascending (0 or 1) and Avg_Score descending
             martyr = leaderboard.sort_values(['Wins', 'Avg_Score'], ascending=[True, False])
-            c2.info(f"**The Eternal Martyr:** {martyr.iloc[0]['player']} (Highest Avg in Defeat)")
+            if not martyr.empty:
+                m_row = martyr.iloc[0]
+                c2.info(
+                    f"**The Eternal Martyr**\n\n"
+                    f"**{m_row['player']}** fought bravely to the end. Despite the losses, "
+                    f"they maintained a high average of **{m_row['Avg_Score']} pts** per game."
+                )
+
 
         def show_faction_win_rates(df):
             st.subheader(f"📊 {selected_event} Faction Meta")
