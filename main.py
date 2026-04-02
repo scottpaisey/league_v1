@@ -621,21 +621,6 @@ else:
         
             st.divider()
         
-            # # --- NEW: COMBAT EFFICIENCY (Averages) ---
-            # st.write("### 🎯 Combat Efficiency")
-            # avg_win_score = df[['p1_score_total', 'p2_score_total']].max(axis=1).mean().round(1)
-            # # Filter out scores of 0 for the losing average to keep it realistic
-            # losing_scores = df[['p1_score_total', 'p2_score_total']].min(axis=1)
-            # avg_loss_score = losing_scores[losing_scores > 0].mean().round(1)
-            # avg_diff = (df['p1_score_total'] - df['p2_score_total']).abs().mean().round(1)
-        
-            # c1, c2, c3 = st.columns(3)
-            # c1.metric("Avg Winning Score", f"{avg_win_score}")
-            # c2.metric("Avg Losing Score", f"{avg_loss_score}")
-            # c3.metric("Avg Score Diff", f"{avg_diff}")
-        
-            # st.divider()
-        
             # --- NARRATIVE AWARDS ---
             st.write("### 🕵️ Intelligence Reports")
             n1, n2, n3 = st.columns(3)
@@ -661,20 +646,20 @@ else:
             if not spearhead.empty:
                 n3.info(f"**The Broken Spearhead**\n\n**{spearhead.iloc[0]['player']}** (Went first {spearhead.iloc[0]['Starts']} times)")
 
-        def show_faction_win_rates(df):
-            st.subheader(f"📊 {selected_event} Faction Meta")
-            p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
-            p1_data.columns = ['faction', 'score', 'opp_score']
-            p2_data = df[['p2_faction', 'p2_score_total', 'p1_score_total']].copy()
-            p2_data.columns = ['faction', 'score', 'opp_score']
-            combined = pd.concat([p1_data, p2_data])
-            combined['is_win'] = combined['score'] > combined['opp_score']
-            stats = combined.groupby('faction').agg(Total=('faction', 'count'), Wins=('is_win', 'sum')).reset_index()
-            stats['Win_Rate'] = (stats['Wins'] / stats['Total'] * 100).round(1)
-            stats = stats.sort_values(by='Win_Rate', ascending=False)
-            fig = px.bar(stats, x='faction', y='Win_Rate', text='Win_Rate', color='Win_Rate', color_continuous_scale='RdYlGn', height=400)
-            fig.update_layout(yaxis_range=[0, 110])
-            st.plotly_chart(fig, use_container_width=True)
+        # def show_faction_win_rates(df):
+        #     st.subheader(f"📊 {selected_event} Faction Meta")
+        #     p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
+        #     p1_data.columns = ['faction', 'score', 'opp_score']
+        #     p2_data = df[['p2_faction', 'p2_score_total', 'p1_score_total']].copy()
+        #     p2_data.columns = ['faction', 'score', 'opp_score']
+        #     combined = pd.concat([p1_data, p2_data])
+        #     combined['is_win'] = combined['score'] > combined['opp_score']
+        #     stats = combined.groupby('faction').agg(Total=('faction', 'count'), Wins=('is_win', 'sum')).reset_index()
+        #     stats['Win_Rate'] = (stats['Wins'] / stats['Total'] * 100).round(1)
+        #     stats = stats.sort_values(by='Win_Rate', ascending=False)
+        #     fig = px.bar(stats, x='faction', y='Win_Rate', text='Win_Rate', color='Win_Rate', color_continuous_scale='RdYlGn', height=400)
+        #     fig.update_layout(yaxis_range=[0, 110])
+        #     st.plotly_chart(fig, use_container_width=True)
 
         def show_faction_turnout(df):
             st.subheader(f"🍕 {selected_event} Faction Turnout")
@@ -774,8 +759,8 @@ else:
                     st.divider()
                     show_round_averages_chart(awards_df)
                     st.divider()
-                    show_faction_win_rates(event_df)
-                    st.divider()
+                    # show_faction_win_rates(event_df)
+                    # st.divider()
                     show_faction_turnout(event_df)
                     st.divider()
                     show_allegiance_points_pie(event_df)
