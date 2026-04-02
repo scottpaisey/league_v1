@@ -115,11 +115,11 @@ else:
         st.session_state.page = "Events"
         collapse_sidebar()
         st.rerun()
-    if st.sidebar.button("Graphs"):
+    if st.sidebar.button("Graphs", disabled=True):
         st.session_state.page = "Graphs"
         collapse_sidebar()
         st.rerun()
-    if st.sidebar.button("Personal Stats"):
+    if st.sidebar.button("Personal Stats", disabled=True):
         st.session_state.page = "Personal Stats"
         collapse_sidebar()
         st.rerun()
