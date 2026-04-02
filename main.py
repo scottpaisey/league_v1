@@ -675,24 +675,24 @@ else:
         # else:
             # st.info("No events found in the database.")
 
-    event_res = supabase.table("match_results").select("event_name").execute()
-    if event_res.data:
-        event_options = sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
-        selected_event = st.selectbox("Select Event to View Reports", event_options)
-
-        # Fetch filtered data
-        res = supabase.table("match_results").select("*").eq("event_name", selected_event).execute()
-        if res.data:
-            raw_df = pd.DataFrame(res.data)
-            
-            # Apply Global Pre-Filters
-            event_df = raw_df[
-                (raw_df['status'] != 'Not Played') & 
-                (raw_df['p1_status'] == 'Checked In') & 
-                (raw_df['p2_status'] == 'Checked In')
-            ].copy()
-
-    show_leaderboard(df)
+        event_res = supabase.table("match_results").select("event_name").execute()
+        if event_res.data:
+            event_options = sorted(list(set([row['event_name'] for row in event_res.data if row['event_name']])))
+            selected_event = st.selectbox("Select Event to View Reports", event_options)
+    
+            # Fetch filtered data
+            res = supabase.table("match_results").select("*").eq("event_name", selected_event).execute()
+            if res.data:
+                raw_df = pd.DataFrame(res.data)
+                
+                # Apply Global Pre-Filters
+                event_df = raw_df[
+                    (raw_df['status'] != 'Not Played') & 
+                    (raw_df['p1_status'] == 'Checked In') & 
+                    (raw_df['p2_status'] == 'Checked In')
+                ].copy()
+    
+        show_leaderboard(df)
     
 
     elif st.session_state.page == "Graphs":
