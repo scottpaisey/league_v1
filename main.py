@@ -431,7 +431,7 @@ else:
                 if submit_scores:
                     st.session_state.temp_scores = {
                         "p1_pri": p1_pri, "p1_sec": p1_sec, "p1_br": p1_br, "p1_killed_warlord": p1_killed_warlord, "p1_tabled_opponent": p1_tabled_opponent,
-                        "p2_pri": p2_pri, "p2_sec": p2_sec, "p2_br": p2_br, "p2_killed_warlord", p2_killed_warlord, "p2_tabled_opponent": p2_tabled_opponent
+                        "p2_pri": p2_pri, "p2_sec": p2_sec, "p2_br": p2_br, "p2_killed_warlord": p2_killed_warlord, "p2_tabled_opponent": p2_tabled_opponent
                     }
                     st.session_state.confirm_submit = True
                     st.rerun()
