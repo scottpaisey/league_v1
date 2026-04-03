@@ -203,7 +203,7 @@ else:
         # mission_pack = st.selectbox(st.selectbox('Mission Pack',['Strike Force (2k)', 'Incursion (1k)', 'Combat Partol'], index=None, placeholder="Choose...")
         st.write("**Your Details**")
         # Extract the name from Discord metadata
-        p1_name = st.text_input("Your Discord Name*", value=discord_name, key="p1_username")
+        p1_name = st.text_input("Your Discord Name*", value=discord_name, key="p1_username", disabled=True)
         # p1_last = st.text_input("Surname", key="p1_l")
         # p1_known = st.text_input("Known As", key="p1_k")
         # 1. Allegiance Dropdown
