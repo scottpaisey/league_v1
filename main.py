@@ -624,16 +624,24 @@ else:
         
             # st.divider()
 
-            # --- NEW: SECTOR COMMANDERS (Top 3 per Allegiance) ---
             st.write("### 🛡️ Sector Commanders")
             
-            # 1. Unpivot/Melt to standardise columns
-            p1 = df[['display_p1_name', 'p1_allegiance', 'p1_faction', 'p1_score_total']].rename(columns={'display_p1_name': 'player', 'p1_allegiance': 'allg', 'p1_faction': 'faction', 'p1_score_total': 'score'})
-            p2 = df[['display_p2_name', 'p2_allegiance', 'p1_faction', 'p2_score_total']].rename(columns={'display_p2_name': 'player', 'p2_allegiance': 'allg', 'p2_faction': 'faction', 'p2_score_total': 'score'})
+            # 1. Unpivot/Melt to standardise columns (Now including Factions)
+            p1 = df[['display_p1_name', 'p1_allegiance', 'p1_faction', 'p1_score_total']].rename(
+                columns={'display_p1_name': 'player', 'p1_allegiance': 'allg', 'p1_faction': 'faction', 'p1_score_total': 'score'}
+            )
+            p2 = df[['display_p2_name', 'p2_allegiance', 'p2_faction', 'p2_score_total']].rename(
+                columns={'display_p2_name': 'player', 'p2_allegiance': 'allg', 'p2_faction': 'faction', 'p2_score_total': 'score'}
+            )
             all_perf = pd.concat([p1, p2])
             
             # 2. Aggregate stats
-            commander_stats = all_perf.groupby(['allg', 'player']).agg(Total_VP=('score', 'sum')).reset_index()
+            # We group by player and allegiance, but take the 'first' faction found 
+            # (or use .mode() if they played multiple, but 'first' is usually safe for an event)
+            commander_stats = all_perf.groupby(['allg', 'player']).agg(
+                Total_VP=('score', 'sum'),
+                Faction=('faction', 'first') 
+            ).reset_index()
             
             # 3. Create columns for each Allegiance
             allg_list = sorted(all_perf['allg'].unique())
@@ -650,14 +658,16 @@ else:
                     
                     # Loop through top 3 and display metrics
                     for rank, (_, row) in enumerate(top_3.iterrows()):
+                        # We put the Faction in the Label to make it look professional
                         st.metric(
-                            label=f"{medals[rank]} | {row['faction']}", 
+                            label=f"{medals[rank]} | {row['Faction']}", 
                             value=row['player'], 
                             delta=f"{int(row['Total_VP'])} VP",
-                            delta_color="off" # Keeps the VP count neutral
+                            delta_color="off"
                         )
             
             st.divider()
+
 
         
             # --- NARRATIVE AWARDS ---
