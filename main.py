@@ -628,8 +628,8 @@ else:
             st.write("### 🛡️ Sector Commanders")
             
             # 1. Unpivot/Melt to standardise columns
-            p1 = df[['display_p1_name', 'p1_allegiance', 'p1_score_total']].rename(columns={'display_p1_name': 'player', 'p1_allegiance': 'allg', 'p1_score_total': 'score'})
-            p2 = df[['display_p2_name', 'p2_allegiance', 'p2_score_total']].rename(columns={'display_p2_name': 'player', 'p2_allegiance': 'allg', 'p2_score_total': 'score'})
+            p1 = df[['display_p1_name', 'p1_allegiance', 'p1_faction', 'p1_score_total']].rename(columns={'display_p1_name': 'player', 'p1_allegiance': 'allg', 'p1_faction': 'faction', 'p1_score_total': 'score'})
+            p2 = df[['display_p2_name', 'p2_allegiance', 'p1_faction', 'p2_score_total']].rename(columns={'display_p2_name': 'player', 'p2_allegiance': 'allg', 'p2_faction': 'faction', 'p2_score_total': 'score'})
             all_perf = pd.concat([p1, p2])
             
             # 2. Aggregate stats
@@ -651,7 +651,7 @@ else:
                     # Loop through top 3 and display metrics
                     for rank, (_, row) in enumerate(top_3.iterrows()):
                         st.metric(
-                            label=f"{medals[rank]} | {row['Faction']}", 
+                            label=f"{medals[rank]} | {row['faction']}", 
                             value=row['player'], 
                             delta=f"{int(row['Total_VP'])} VP",
                             delta_color="off" # Keeps the VP count neutral
