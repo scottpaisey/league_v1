@@ -416,13 +416,13 @@ else:
                     else:
                         p2_br = 0
                     if st.toggle("Slain Enemy Warlord?*", key="p2_killed_warlord"):
-                        p2_killed_warlord = true
+                        p2_killed_warlord = True
                     else:
-                        p2_killed_warlord = false
+                        p2_killed_warlord = False
                     if st.toggle("Tabled Opponent?*", key="p2_tabled_opponent"):
-                        p2_tabled_opponent = true
+                        p2_tabled_opponent = True
                     else:
-                        p2_tabled_opponent = false
+                        p2_tabled_opponent = False
                     
 
                 # Use the form submit button to move to confirmation
