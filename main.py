@@ -985,7 +985,3 @@ else:
         else:
             st.info("No match history found. Get some games logged!")
 
-
-        else:
-            st.info("You haven't logged any games yet. Get to the table!")
-
