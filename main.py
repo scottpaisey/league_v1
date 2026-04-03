@@ -398,13 +398,13 @@ else:
                     else:
                         p1_br = 0
                     if st.toggle("Slain Enemy Warlord?*", key="p1_killed_warlord"):
-                        p1_killed_warlord = true
+                        p1_killed_warlord = True
                     else:
-                        p1_killed_warlord = false
+                        p1_killed_warlord = False
                     if st.toggle("Tabled Opponent?*", key="p1_tabled_opponent"):
-                        p1_tabled_opponent = true
+                        p1_tabled_opponent = True
                     else:
-                        p1_tabled_opponent = false
+                        p1_tabled_opponent = False
                 with col4:
                     st.subheader(f"{p2_name}")
                     st.write(f"**{p2_fac}**")
