@@ -69,18 +69,19 @@ if "code" in st.query_params:
 
 # # scottpaisey 03/04/2026
 # # DEBUG: comment this out if the sign in has issues !!!
-# # 3. PERSISTENT USER SYNC
-# if "user" in st.session_state and "user_role" not in st.session_state:
-#     try:
-#         user_id = st.session_state.user.id
-#         profile_res = supabase.table("profiles").select("role").eq("id", user_id).single().execute()
-#         if profile_res.data:
-#             st.session_state.user_role = profile_res.data['role']
-#         else:
-#             st.session_state.user_role = "member" # Fallback
-#     except Exception as e:
-#         st.session_state.user_role = "member"
-
+# 3. PERSISTENT USER SYNC (Uncommented and improved)
+if "user" in st.session_state and "user_role" not in st.session_state:
+    try:
+        user_id = st.session_state.user.id
+        # Fetch the role from the profile table where ID matches the authenticated user
+        profile_res = supabase.table("profiles").select("role").eq("id", user_id).execute()
+        
+        if profile_res.data:
+            st.session_state.user_role = profile_res.data[0].get('role', 'member')
+        else:
+            st.session_state.user_role = "member" # Fallback if no profile exists
+    except Exception as e:
+        st.session_state.user_role = "member"
 
 # 4. LOGIN FUNCTION
 def show_login_screen():
@@ -188,9 +189,10 @@ else:
         if st.button("Warhammer 40,000"):
             st.session_state.page = "40k"
             st.rerun()
-        if st.button("Age of Sigmar", disabled=True):
-            st.session_state.page = "AoS"
-            st.rerun()
+        if st.session_state.get("user_role") == "system_admin":
+            if st.button("Age of Sigmar", disabled=True):
+                st.session_state.page = "AoS"
+                st.rerun()
 
     elif st.session_state.page == "40k":
         st.header("Warhammer 40,000 Game")
