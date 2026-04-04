@@ -873,8 +873,6 @@ else:
                 
                 if not raw_df.empty:
                     # --- STEP 3: RUN REPORTS IN ORDER ---
-                    ranking_data = show_leaderboard(system_df)
-                    st.divider()
                     show_faction_win_rates(system_df)
                     st.divider()
                     show_faction_turnout(system_df)
