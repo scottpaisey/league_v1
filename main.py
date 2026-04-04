@@ -862,7 +862,7 @@ else:
             st.plotly_chart(fig, use_container_width=True)
         
         system_res = supabase.table("match_results").select("system_name").execute()
-        if event_res.data:
+        if system_res.data:
             system_options = sorted(list(set([row['system_name'] for row in system_res.data if row['system_name']])))
             selected_system = st.selectbox("Select System to View Reports", system_options)
     
