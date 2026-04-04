@@ -663,7 +663,10 @@ else:
             ).reset_index()
             
             # 3. Create columns for each Allegiance
-            allg_list = sorted(all_perf['allg'].unique())
+            # allg_list = sorted(all_perf['allg'].unique())
+            # This removes any None values before trying to sort them
+            allg_list = sorted([a for a in all_perf['allg'].unique() if a is not None])
+
             cols = st.columns(len(allg_list))
             
             medals = ["🥇 Gold", "🥈 Silver", "🥉 Bronze"]
