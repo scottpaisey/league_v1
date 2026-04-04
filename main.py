@@ -123,10 +123,10 @@ else:
         st.session_state.page = "Events"
         collapse_sidebar()
         st.rerun()
-    # if st.sidebar.button("Graphs"):
-    #     st.session_state.page = "Graphs"
-    #     collapse_sidebar()
-    #     st.rerun()
+    if st.sidebar.button("Graphs"):
+        st.session_state.page = "Graphs"
+        collapse_sidebar()
+        st.rerun()
     if st.sidebar.button("Personal Stats"):
         st.session_state.page = "Personal Stats"
         collapse_sidebar()
@@ -826,22 +826,65 @@ else:
         st.header("Graphs")
         st.divider()
         
-        # 2. Fetch matches where the user is P1 OR P2
-        # We use the .or_() filter on the view's column names
-        res = supabase.table("v_system_faction_data") \
-            .select("*") \
-            .execute()
-            # .order("game_date", desc=True) \
-            # .limit(10) \
-            
-        if res.data:
-            recent_df = pd.DataFrame(res.data)
-            st.subheader("Faction Win Rates")
-            st.dataframe(
-                recent_df,
-                use_container_width=True,
-                hide_index=True
-            )
+        def show_faction_win_rates(df):
+            st.subheader(f"📊 {selected_system} Faction Meta")
+            p1_data = df[['p1_faction', 'p1_score_total', 'p2_score_total']].copy()
+            p1_data.columns = ['faction', 'score', 'opp_score']
+            p2_data = df[['p2_faction', 'p2_score_total', 'p1_score_total']].copy()
+            p2_data.columns = ['faction', 'score', 'opp_score']
+            combined = pd.concat([p1_data, p2_data])
+            combined['is_win'] = combined['score'] > combined['opp_score']
+            stats = combined.groupby('faction').agg(Total=('faction', 'count'), Wins=('is_win', 'sum')).reset_index()
+            stats['Win_Rate'] = (stats['Wins'] / stats['Total'] * 100).round(1)
+            stats = stats.sort_values(by='Win_Rate', ascending=False)
+            fig = px.bar(stats, x='faction', y='Win_Rate', text='Win_Rate', color='Win_Rate', color_continuous_scale='RdYlGn', height=400)
+            fig.update_layout(yaxis_range=[0, 110])
+            st.plotly_chart(fig, use_container_width=True)
+
+        def show_faction_turnout(df):
+            st.subheader(f"🍕 {selected_system} Faction Turnout")
+            combined = pd.concat([df[['p1_faction']].rename(columns={'p1_faction':'f'}), df[['p2_faction']].rename(columns={'p2_faction':'f'})])
+            stats = combined['f'].value_counts().reset_index()
+            stats.columns = ['Faction', 'Count']
+            fig = px.pie(stats, values='Count', names='Faction', hole=0.4, color_discrete_sequence=px.colors.qualitative.Pastel)
+            st.plotly_chart(fig, use_container_width=True)
+
+        def show_allegiance_points_pie(df):
+            st.subheader(f"🍰 {selected_system} Points per Allegiance")
+            p1 = df[['p1_allegiance', 'p1_score_total']].rename(columns={'p1_allegiance':'a', 'p1_score_total':'s'})
+            p2 = df[['p2_allegiance', 'p2_score_total']].rename(columns={'p2_allegiance':'a', 'p2_score_total':'s'})
+            combined = pd.concat([p1, p2])
+            agg = combined.groupby('a')['s'].sum().reset_index().sort_values('s', ascending=False)
+            agg['label'] = agg['a'] + " (" + agg['s'].astype(str) + " pts)"
+            fig = px.pie(agg, values='s', names='label', hole=0.5, title=f"Total Event Points: {agg['s'].sum():,}")
+            fig.update_traces(textinfo='percent+label')
+            fig.update_layout(showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+        
+        system_res = supabase.table("match_results").select("system_name").execute()
+        if event_res.data:
+            system_options = sorted(list(set([row['system_name'] for row in system_res.data if row['system_name']])))
+            selected_system = st.selectbox("Select System to View Reports", system_options)
+    
+            # Fetch filtered data
+            res = supabase.table("match_results").select("*").eq("system_name", selected_system).execute()
+            if res.data:
+                raw_df = pd.DataFrame(res.data)
+                
+                if not system_df.empty:
+                    # --- STEP 3: RUN REPORTS IN ORDER ---
+                    ranking_data = show_leaderboard(system_df)
+                     st.divider()
+                    show_faction_win_rates(system_df)
+                    st.divider()
+                    show_faction_turnout(system_df)
+                    st.divider()
+                    show_allegiance_points_pie(system_df)
+        
+                else:
+                    st.warning("No valid match data found after filtering out results.")
+        else:
+            st.info("No games found in the database.")
 
 
     elif st.session_state.page == "Personal Stats":
