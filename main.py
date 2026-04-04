@@ -871,7 +871,7 @@ else:
             if res.data:
                 raw_df = pd.DataFrame(res.data)
                 
-                if not system_df.empty:
+                if not raw_df.empty:
                     # --- STEP 3: RUN REPORTS IN ORDER ---
                     ranking_data = show_leaderboard(system_df)
                     st.divider()
