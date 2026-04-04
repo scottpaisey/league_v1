@@ -869,9 +869,9 @@ else:
             # Fetch filtered data
             res = supabase.table("match_results").select("*").eq("system_name", selected_system).execute()
             if res.data:
-                raw_df = pd.DataFrame(res.data)
+                system_df = pd.DataFrame(res.data)
                 
-                if not raw_df.empty:
+                if not system_df.empty:
                     # --- STEP 3: RUN REPORTS IN ORDER ---
                     show_faction_win_rates(system_df)
                     st.divider()
