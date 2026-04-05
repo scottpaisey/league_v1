@@ -1131,19 +1131,49 @@ else:
         
         # 1. The Data Entry Form
         if not st.session_state.confirm_submit:
+            
+            # The lookup table based on your image
+            # Format: {starting_count: [Grade 1 threshold, Grade 2, Grade 3, Grade 4, Grade 5]}
+            KILL_GRADE_MAPPING = {
+                5:  [1, 2, 3, 4, 5],
+                6:  [1, 2, 4, 5, 6],
+                7:  [1, 3, 4, 6, 7],
+                8:  [2, 3, 5, 6, 8],
+                9:  [2, 4, 5, 7, 9],
+                10: [2, 4, 6, 8, 10],
+                11: [2, 4, 7, 9, 11],
+                12: [2, 5, 7, 10, 12],
+                13: [3, 5, 8, 10, 13],
+                14: [3, 6, 8, 11, 14]
+            }
+            
+            def calculate_kill_grade(kills, enemy_starting_count):
+                """Returns the Kill Grade (0-5) based on kills and enemy starting size."""
+                if enemy_starting_count not in KILL_GRADE_MAPPING or kills == 0:
+                    return 0
+                
+                thresholds = KILL_GRADE_MAPPING[enemy_starting_count]
+                grade = 0
+                # Iterate through thresholds; index + 1 is the grade
+                for i, threshold in enumerate(thresholds):
+                    if kills >= threshold:
+                        grade = i + 1
+                return grade
+            
             with st.form("score_submission_form"):
                 col3, col4 = st.columns(2)
                 with col3:
                     st.subheader(f"{p1_name}")
                     st.write(f"**{p1_fac}**")
                     st.write(f"{p1_sub}")
-                    p1_pri = st.number_input("Primary Score*", 0, 45, key="p1_p")
-                    p1_sec = st.number_input("Secondary Score*", 0, 45, key="p1_s")
+                    p1_pri = st.number_input("Crit Op Score*", 0, 6, key="p1_p")
+                    p1_sec = st.number_input("Tac Op Score*", 0, 6, key="p1_s")
+                    p1_kills = st.number_input("Operatives Killed*", 0, p2_op_count, key="p1_kills")
                     if st.toggle("Battle Ready?*", key="p1_br"):
-                        p1_br = 10
+                        p1_br = 2
                     else:
                         p1_br = 0
-                    if st.toggle("Slain Enemy Warlord?*", key="p1_killed_warlord"):
+                    if st.toggle("Slain Enemy Leader?*", key="p1_killed_warlord"):
                         p1_killed_warlord = True
                     else:
                         p1_killed_warlord = False
@@ -1155,13 +1185,14 @@ else:
                     st.subheader(f"{p2_name}")
                     st.write(f"**{p2_fac}**")
                     st.write(f"{p2_sub}")
-                    p2_pri = st.number_input("Primary Score*", 0, 45, key="p2_p")
-                    p2_sec = st.number_input("Secondary Score*", 0, 45, key="p2_s")
+                    p2_pri = st.number_input("Crit Op Score*", 0, 6, key="p2_p")
+                    p2_sec = st.number_input("Tac Op Score*", 0, 6, key="p2_s")
+                    p2_kills = st.number_input("Operatives Killed?*", 0, p1_op_count, key="p2_kills")
                     if st.toggle("Battle Ready?*", key="p2_br"):
-                        p2_br = 10
+                        p2_br = 2
                     else:
                         p2_br = 0
-                    if st.toggle("Slain Enemy Warlord?*", key="p2_killed_warlord"):
+                    if st.toggle("Slain Enemy Leader?*", key="p2_killed_warlord"):
                         p2_killed_warlord = True
                     else:
                         p2_killed_warlord = False
@@ -1175,9 +1206,13 @@ else:
                 submit_scores = st.form_submit_button("Review Results")
 
                 if submit_scores:
+                    
+                    p1_kill_grade = calculate_kill_grade(p1_kills, p2_op_count)
+                    p2_kill_grade = calculate_kill_grade(p2_kills, p1_op_count)
+                    
                     st.session_state.temp_scores = {
-                        "p1_pri": p1_pri, "p1_sec": p1_sec, "p1_br": p1_br, "p1_killed_warlord": p1_killed_warlord, "p1_tabled_opponent": p1_tabled_opponent,
-                        "p2_pri": p2_pri, "p2_sec": p2_sec, "p2_br": p2_br, "p2_killed_warlord": p2_killed_warlord, "p2_tabled_opponent": p2_tabled_opponent
+                        "p1_pri": p1_pri, "p1_sec": p1_sec, "p1_kills": p1_kills, "p1_kill_grade": p1_kill_grade, "p1_br": p1_br, "p1_killed_warlord": p1_killed_warlord, "p1_tabled_opponent": p1_tabled_opponent,
+                        "p2_pri": p2_pri, "p2_sec": p2_sec, "p2_kills": p2_kills, "p2_kill_grade": p2_kill_grade, "p2_br": p2_br, "p2_killed_warlord": p2_killed_warlord, "p2_tabled_opponent": p2_tabled_opponent
                     }
                     st.session_state.confirm_submit = True
                     st.rerun()
@@ -1189,9 +1224,10 @@ else:
             # Display all gathered info
             setup = st.session_state.game_data
             scores = st.session_state.temp_scores
+            
             # Calculate Totals
-            p1_total = scores['p1_pri'] + scores['p1_sec'] + scores['p1_br']
-            p2_total = scores['p2_pri'] + scores['p2_sec'] + scores['p2_br']
+            p1_total = scores['p1_pri'] + scores['p1_sec'] + scores['p1_kill_grade'] + scores['p1_br']
+            p2_total = scores['p2_pri'] + scores['p2_sec'] + scores['p2_kill_grade'] + scores['p2_br']
 
             # Determine Results
             if p1_total > p2_total:
@@ -1207,15 +1243,17 @@ else:
             col_a, col_b = st.columns(2)
             col_a.write(f"Name: **{setup['p1_name']}**"
                         f"\n\nFaction: {setup['p1_fac']}"
-                        f"\n\nDetatchment: {setup['p1_sub']}"
-                        f"\n\nPrimary: {scores['p1_pri']}"
-                        f"\n\nSecondary: {scores['p1_sec']}"
+                        f"\n\nKill Team: {setup['p1_sub']}"
+                        f"\n\nCrit Op: {scores['p1_pri']}"
+                        f"\n\nTac Op: {scores['p1_sec']}"
+                        f"\n\nKill Op: {scores['p1_kill_grade']}"
                         f"\n\nBattle Ready: {scores['p1_br']}")
             col_b.write(f"Name: **{setup['p2_name']}**"
                         f"\n\nFaction: {setup['p2_fac']}"
-                        f"\n\nDetatchment: {setup['p2_sub']}"
-                        f"\n\nPrimary: {scores['p2_pri']}"
-                        f"\n\nSecondary: {scores['p2_sec']}"
+                        f"\n\nKill Team: {setup['p2_sub']}"
+                        f"\n\nCrit Op: {scores['p2_pri']}"
+                        f"\n\nTac Op: {scores['p2_sec']}"
+                        f"\n\nKill Op: {scores['p2_kill_grade']}"
                         f"\n\nBattle Ready: {scores['p2_br']}")
 
             c1, c2 = st.columns(2)
@@ -1240,9 +1278,9 @@ else:
                         "p1_score_01": scores['p1_pri'],
                         "p1_score_02": scores['p1_sec'],
                         "p1_score_03": scores['p1_br'],
-                        "p1_score_04": 0,
-                        "p1_score_05": 0,
-                        "p1_score_total": scores['p1_pri'] + scores['p1_sec'] + scores['p1_br'],
+                        "p1_score_04": scores['p1_kill_grade'],
+                        "p1_score_05": scores['p1_kills'],
+                        "p1_score_total": scores['p1_pri'] + scores['p1_sec'] + scores['p1_kill_grade'] + scores['p1_br'],
                         "p1_score_mar": p1_total - p2_total,
                         "player_2_id": clean_id(setup['p2_id']),
                         "player_2_name": setup['p2_name'],
@@ -1250,9 +1288,9 @@ else:
                         "p2_score_01": scores['p2_pri'],
                         "p2_score_02": scores['p2_sec'],
                         "p2_score_03": scores['p2_br'],
-                        "p2_score_04": 0,
-                        "p2_score_05": 0,
-                        "p2_score_total": scores['p2_pri'] + scores['p2_sec'] + scores['p2_br'],
+                        "p2_score_04": scores['p2_kill_grade'],
+                        "p2_score_05": scores['p2_kills'],
+                        "p2_score_total": scores['p2_pri'] + scores['p2_sec'] + scores['p2_kill_grade'] + scores['p2_br'],
                         "p2_score_mar": p2_total - p1_total,
                         "went_first_id": clean_id(setup['went_first_id']),
                         "winner_id": clean_id(winner_id),
@@ -1276,11 +1314,11 @@ else:
                 st.session_state.game_data = {}
                 st.session_state.temp_scores = {}
                 st.session_state.confirm_submit = False
-                # st.session_state.page = None  # Go back to home
-                # st.rerun()
-                st.session_state.selected_system = "40K"
-                st.session_state.page = None
+                st.session_state.page = None  # Go back to home
                 st.rerun()
+                #st.session_state.selected_system = "40K"
+                #st.session_state.page = None
+                #st.rerun()
 
             if c2.button("❌ No, Edit Scores", use_container_width=True):
                 st.session_state.confirm_submit = False
