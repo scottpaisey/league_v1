@@ -189,13 +189,19 @@ else:
         if st.button("Warhammer 40,000"):
             st.session_state.page = "40k"
             st.rerun()
+        if st.button("Age of Sigmar"):
+            st.session_state.page = "AOS"
+            st.rerun()
+        if st.button("Kill Team"):
+            st.session_state.page = "KT"
+            st.rerun()
         if st.session_state.get("user_role") == "system_admin":
-            if st.button("Age of Sigmar"):
-                st.session_state.page = "AOS"
+            if st.button("Middle Earth: SBG"):
+                st.session_state.page = "MESBG"
                 st.rerun()
         if st.session_state.get("user_role") == "system_admin":
-            if st.button("Kill Team"):
-                st.session_state.page = "KT"
+            if st.button("Old World"):
+                st.session_state.page = "OW"
                 st.rerun()
 
     elif st.session_state.page == "40k":
