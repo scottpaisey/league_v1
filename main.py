@@ -1352,7 +1352,7 @@ else:
         # Extract the name from Discord metadata
         p1_name = st.text_input("Your Discord Name*", value=discord_name, key="p1_username", disabled=True)
         # 1. Allegiance Dropdown
-        p1_all_df = p1_df_system_factions[p1_df_system_factions['short_name'] == '40K']
+        p1_all_df = p1_df_system_factions[p1_df_system_factions['short_name'] == 'MESBG']
         p1_all = st.selectbox("Your Allegiance", p1_all_df['allegiance'].unique(), index=None,
                               placeholder="Choose...", key="p1_all_sel")
         # 2. Faction Dropdown (MUST use filtered options)
@@ -1400,7 +1400,7 @@ else:
                 st.warning("⚠️ User not found. Recording as 'Guest'.")
 
         # 1. Allegiance Dropdown
-        p2_all_df = p2_df_system_factions[p2_df_system_factions['short_name'] == '40K']
+        p2_all_df = p2_df_system_factions[p2_df_system_factions['short_name'] == 'MESBG']
         p2_all = st.selectbox("Opponents Allegiance", p2_all_df['allegiance'].unique(), index=None,
                               placeholder="Choose...", key="p2_all_sel")
         # 2. Faction Dropdown (MUST use filtered options)
