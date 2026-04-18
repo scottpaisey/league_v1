@@ -155,10 +155,14 @@ else:
         st.write(f"Most recent matches logged")
 
         # Fetch from your new view
-        res = supabase.table("match_results").select("*").order("game_date", desc=False).limit(50).execute()
+        res = supabase.table("match_results").select("*").order("game_date", desc=True).limit(10).execute()
+        
         if res.data:
             recent_df = pd.DataFrame(res.data)
+            
+            # 2. Convert to datetime (keep dayfirst=True)
             recent_df["game_date"] = pd.to_datetime(recent_df["game_date"], dayfirst=True)
+            
             st.subheader("Latest 10 Battle Reports")
             st.dataframe(
                 recent_df,
@@ -173,7 +177,11 @@ else:
                     "p2_score_total"
                 ),
                 column_config={
-                    "game_date": "Date",
+                    # 3. Use DateColumn to force the DD/MM/YYYY display format
+                    "game_date": st.column_config.DateColumn(
+                        "Date", 
+                        format="DD/MM/YYYY"
+                    ),
                     "system_name": "System",
                     "display_p1_name": "Player 1",
                     "p1_faction": "P1 Faction",
